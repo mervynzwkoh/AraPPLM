@@ -44,11 +44,13 @@ python merge_uniparc.py
 ```
 
 ## Project Structure
+```
 ├── PPLM/                  # Original PPLM (submodule)
 ├── scripts/               # Custom prediction & data prep scripts
 ├── data/                  # Benchmark datasets & sequence data
 ├── results/               # Benchmark outputs
 └── docs/                  # Technical documentation
+```
 
 ## References
 - PPLM: Liu, Chen & Zhang, Nature Communications 2026
