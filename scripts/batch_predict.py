@@ -24,17 +24,19 @@ from pathlib import Path
 
 # Get the directory where THIS script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# PPLM is the parent directory of this script
-PPLM_DIR = SCRIPT_DIR 
-# Goes up one level to AraPPLM/PPLM
-DATA_DIR = os.path.join(PPLM_DIR, "data")  # AraPPLM/data
+# Project root is the parent directory of scripts/
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+# PPLM submodule / package directory
+PPLM_DIR = os.path.join(PROJECT_ROOT, "PPLM")
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 sys.path.insert(0, PPLM_DIR)
 
 # Debug: Print paths for verification
 print(f"Script directory: {SCRIPT_DIR}")
-print(f"PPLM directory: {PPLM_DIR}")
-print(f"Data directory: {DATA_DIR}")
-print(f"sys.path[0]: {sys.path[0]}")
+print(f"Project root:     {PROJECT_ROOT}")
+print(f"PPLM directory:   {PPLM_DIR}")
+print(f"Data directory:   {DATA_DIR}")
+print(f"sys.path[0]:      {sys.path[0]}")
 
 # Verify PPLM can be imported
 try:

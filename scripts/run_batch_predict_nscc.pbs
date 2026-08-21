@@ -1,0 +1,63 @@
+#!/bin/bash
+# ==============================================================================
+# PBS Job Script: PPLM Batch Prediction on NSCC ASPIRE 2A (NVIDIA A100 GPU)
+# ==============================================================================
+#PBS -N pplm_batch_predict
+#PBS -P xxxxxxxx               # Replace with your NSCC Project ID (e.g. 1100xxxx or 1200xxxx)
+#PBS -q normal                 # Standard production queue on ASPIRE 2A
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64GB   # 1 chunk: 1 A100 GPU, 8 CPUs, 64GB RAM
+#PBS -l walltime=04:00:00      # Adjust based on dataset size (e.g. 02:00:00 for C1-C3, 24:00:00 for full ~130k)
+#PBS -j oe                     # Merge standard output and standard error into a single log
+#PBS -o pplm_batch_predict.log # Output log file location
+
+# ------------------------------------------------------------------------------
+# 1. Move to Working Directory (PBS defaults to $HOME unless changed)
+# ------------------------------------------------------------------------------
+cd $PBS_O_WORKDIR || exit 1
+echo "=== Job started on $(hostname) at $(date) ==="
+echo "Working directory: $(pwd)"
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+
+# ------------------------------------------------------------------------------
+# 2. Check GPU Availability
+# ------------------------------------------------------------------------------
+nvidia-smi
+
+# ------------------------------------------------------------------------------
+# 3. Load Modules & Activate Conda Environment
+# ------------------------------------------------------------------------------
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+else
+    module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null
+fi
+
+conda activate PPLM_NSCC_A100
+
+echo "Python binary: $(which python)"
+echo "PyTorch check:"
+python -c "import torch; print('PyTorch Version:', torch.__version__, '| CUDA available:', torch.cuda.is_available(), '| Device count:', torch.cuda.device_count())"
+
+# ------------------------------------------------------------------------------
+# 4. Run PPLM Batch Prediction
+# ------------------------------------------------------------------------------
+INPUT_DATA="data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt"
+OUTPUT_CSV="results/deepara_c1_scores.csv"
+SEQ_DB="data/uniprot_final.pkl"
+BATCH_SIZE=8  # A100 (40GB/80GB VRAM) easily handles batch size 8 or 16
+
+mkdir -p results
+
+echo "Running batch prediction on: $INPUT_DATA"
+python scripts/batch_predict.py \
+    --input "$INPUT_DATA" \
+    --output "$OUTPUT_CSV" \
+    --batch_size $BATCH_SIZE \
+    --gpu_id 0 \
+    --seq_db "$SEQ_DB"
+
+echo "=== Job finished at $(date) ==="
