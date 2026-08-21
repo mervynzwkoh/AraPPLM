@@ -3,7 +3,7 @@
 # PBS Job Script: PPLM Batch Prediction on NSCC ASPIRE 2A (NVIDIA A100 GPU)
 # ==============================================================================
 #PBS -N pplm_batch_predict
-#PBS -P xxxxxxxx               # Replace with your NSCC Project ID (e.g. 1100xxxx or 1200xxxx)
+#PBS -P personal-e0969134               # Replace with your NSCC Project ID (e.g. 1100xxxx or 1200xxxx)
 #PBS -q normal                 # Standard production queue on ASPIRE 2A
 #PBS -l select=1:ncpus=8:ngpus=1:mem=64GB   # 1 chunk: 1 A100 GPU, 8 CPUs, 64GB RAM
 #PBS -l walltime=04:00:00      # Adjust based on dataset size (e.g. 02:00:00 for C1-C3, 24:00:00 for full ~130k)
