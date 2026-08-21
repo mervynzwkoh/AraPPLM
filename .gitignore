@@ -14,14 +14,12 @@ build/
 venv/
 ENV/
 
-# ============================================================
-# Large data files (reproducible — see docs/technical_summary.md)
-# ============================================================
-# Raw FASTA downloads (re-download from UniProt)
-data/arabidopsis/sequences/uniprot_arabidopsis.fasta
-
-# Pickle sequence databases (rebuild via scripts/data_preparation/)
-data/arabidopsis/sequences/*.pkl
+# Large sequence files (reproducible — see docs/data_processing_pipeline.md)
+data/arabidopsis/uniprot_arabidopsis.fasta
+data/arabidopsis/*.pkl
+data/rice/*.fasta
+data/rice/*.pkl
+data/**/*.pkl
 
 # ============================================================
 # Model weights (download from PPLM release)

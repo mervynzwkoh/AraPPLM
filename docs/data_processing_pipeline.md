@@ -104,10 +104,10 @@ Use `build_sequence_db.py` to parse the raw UniProt FASTA and merge UniParc sequ
 
 ```bash
 python scripts/data_preparation/build_sequence_db.py \
-    --fasta data/uniprot_arabidopsis.fasta \
-    --uniparc_fasta data/uniparc_348.fasta \
-    --mapping data/uniparc_id_mapping.json \
-    --output data/uniprot_final.pkl \
+    --fasta data/arabidopsis/uniprot_arabidopsis.fasta \
+    --uniparc_fasta data/arabidopsis/uniparc_348.fasta \
+    --mapping data/arabidopsis/uniparc_id_mapping.json \
+    --output data/arabidopsis/uniprot_final.pkl \
     --verify data/DeepAraPPI/total_positive_negative_samples_DeepAraPPI.txt
 ```
 
@@ -127,12 +127,12 @@ To verify any dataset against any sequence database before launching long GPU ru
 ```bash
 python scripts/data_preparation/verify_coverage.py \
     --dataset data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt \
-    --seq_db data/uniprot_final.pkl
+    --seq_db data/arabidopsis/uniprot_final.pkl
 ```
 
 #### Expected Output:
 ```text
-Loading sequence database: data/uniprot_final.pkl
+Loading sequence database: data/arabidopsis/uniprot_final.pkl
 Loaded 109,640 sequence/accession entries.
 
 Checking dataset: data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt
@@ -169,12 +169,12 @@ The sequences are subsequently tokenized, concatenated with inter-chain attentio
 
 The pipeline is modular and reusable for future datasets (e.g. Maize PPIM, Rice PRIN):
 
-1. Download the species proteome FASTA from UniProt into `data/<species>/sequences/uniprot_<species>.fasta`.
+1. Download the species proteome FASTA from UniProt into `data/<species>/uniprot_<species>.fasta`.
 2. Run `build_sequence_db.py`:
    ```bash
    python scripts/data_preparation/build_sequence_db.py \
-       --fasta data/rice/sequences/uniprot_rice.fasta \
-       --output data/rice/sequences/uniprot_rice_final.pkl \
-       --verify data/rice/rice_ppi_dataset.txt
+       --fasta data/rice/uniprot_rice.fasta \
+       --output data/rice/uniprot_rice_final.pkl \
+       --verify data/DeepAraPPI/all_rice_positive_negative_DeepAraPPI.txt
    ```
 3. If any legacy IDs are missing, `verify_coverage.py` will print the exact missing ID list to be retrieved from UniParc.

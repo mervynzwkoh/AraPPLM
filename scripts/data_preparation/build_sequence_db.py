@@ -7,10 +7,10 @@ and exports a single pickled sequence database dictionary with 100% ID coverage.
 Usage:
     # Build complete Arabidopsis database from project root:
     python scripts/data_preparation/build_sequence_db.py \
-        --fasta data/uniprot_arabidopsis.fasta \
-        --uniparc_fasta data/uniparc_348.fasta \
-        --mapping data/uniparc_id_mapping.json \
-        --output data/uniprot_final.pkl \
+        --fasta data/arabidopsis/uniprot_arabidopsis.fasta \
+        --uniparc_fasta data/arabidopsis/uniparc_348.fasta \
+        --mapping data/arabidopsis/uniparc_id_mapping.json \
+        --output data/arabidopsis/uniprot_final.pkl \
         --verify data/DeepAraPPI/total_positive_negative_samples_DeepAraPPI.txt
 """
 

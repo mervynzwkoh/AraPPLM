@@ -36,8 +36,8 @@ python -c "import torch; print('CUDA available:', torch.cuda.is_available(), '| 
 
 mkdir -p results
 
-ARABIDOPSIS_SEQ_DB="data/arabidopsis/sequences/uniprot_final.pkl"
-RICE_SEQ_DB="data/rice/sequences/uniprot_rice_final.pkl"
+ARABIDOPSIS_SEQ_DB="data/arabidopsis/uniprot_final.pkl"
+RICE_SEQ_DB="data/rice/uniprot_rice_final.pkl"
 BATCH_SIZE=8
 
 # ------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ BATCH_SIZE=8
 # ------------------------------------------------------------------------------
 echo -e "\n>>> [1/4] Running Benchmark: Task 1 (C1 Sample) <<<"
 python scripts/batch_predict.py \
-    --input data/arabidopsis/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt \
+    --input data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt \
     --output results/deepara_c1_scores.csv \
     --batch_size $BATCH_SIZE \
     --gpu_id 0 \
@@ -56,7 +56,7 @@ python scripts/batch_predict.py \
 # ------------------------------------------------------------------------------
 echo -e "\n>>> [2/4] Running Benchmark: Task 2 (C2 Sample - One Unseen) <<<"
 python scripts/batch_predict.py \
-    --input data/arabidopsis/DeepAraPPI/c2_ppi_sample_DeepAraPPI.txt \
+    --input data/DeepAraPPI/c2_ppi_sample_DeepAraPPI.txt \
     --output results/deepara_c2_scores.csv \
     --batch_size $BATCH_SIZE \
     --gpu_id 0 \
@@ -67,7 +67,7 @@ python scripts/batch_predict.py \
 # ------------------------------------------------------------------------------
 echo -e "\n>>> [3/4] Running Benchmark: Task 3 (C3 Sample - Both Unseen) <<<"
 python scripts/batch_predict.py \
-    --input data/arabidopsis/DeepAraPPI/c3_ppi_sample_DeepAraPPI.txt \
+    --input data/DeepAraPPI/c3_ppi_sample_DeepAraPPI.txt \
     --output results/deepara_c3_scores.csv \
     --batch_size $BATCH_SIZE \
     --gpu_id 0 \
@@ -79,7 +79,7 @@ python scripts/batch_predict.py \
 if [ -f "$RICE_SEQ_DB" ]; then
     echo -e "\n>>> [4/4] Running Benchmark: Task 4 (Rice Cross-Species) <<<"
     python scripts/batch_predict.py \
-        --input data/arabidopsis/DeepAraPPI/all_rice_positive_negative_DeepAraPPI.txt \
+        --input data/DeepAraPPI/all_rice_positive_negative_DeepAraPPI.txt \
         --output results/deepara_rice_scores.csv \
         --batch_size $BATCH_SIZE \
         --gpu_id 0 \

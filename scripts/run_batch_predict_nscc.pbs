@@ -47,7 +47,7 @@ python -c "import torch; print('PyTorch Version:', torch.__version__, '| CUDA av
 # ------------------------------------------------------------------------------
 INPUT_DATA="data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt"
 OUTPUT_CSV="results/deepara_c1_scores.csv"
-SEQ_DB="data/uniprot_final.pkl"
+SEQ_DB="data/arabidopsis/uniprot_final.pkl"
 BATCH_SIZE=8  # A100 (40GB/80GB VRAM) easily handles batch size 8 or 16
 
 mkdir -p results
