@@ -1,0 +1,48 @@
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# ============================================================
+# Large data files (reproducible — see docs/technical_summary.md)
+# ============================================================
+# Raw FASTA downloads (re-download from UniProt)
+data/arabidopsis/sequences/uniprot_arabidopsis.fasta
+
+# Pickle sequence databases (rebuild via scripts/data_preparation/)
+data/arabidopsis/sequences/*.pkl
+
+# ============================================================
+# Model weights (download from PPLM release)
+# ============================================================
+PPLM/weights/*.pt
+PPLM/weights/*.pkl
+
+# Future: your own fine-tuned checkpoints
+models/*.pt
+models/*.pkl
+models/*.bin
+
+# ============================================================
+# IDE / Editor / OS
+# ============================================================
+.agnes/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+desktop.ini
