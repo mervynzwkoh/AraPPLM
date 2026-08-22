@@ -142,46 +142,55 @@ def get_features(model, batch_converter, seqA, seqB, device):
     return features
 
 
-def predict_with_weights(ppi_model, features, weights):
-    """Predict using a single set of PPI classifier weights."""
-    # Mean features
-    pred_mean = ppi_model(
-        features["mean_inter_attn"],
-        features["mean_attn_AA"],
-        features["mean_attn_BB"],
-        features["mean_embed_A"],
-        features["mean_embed_B"],
-    )
-    pred_mean_swap = ppi_model(
-        features["mean_inter_attn"],
-        features["mean_attn_BB"],
-        features["mean_attn_AA"],
-        features["mean_embed_B"],
-        features["mean_embed_A"],
-    )
-    pred_mean = (pred_mean + pred_mean_swap) / 2
-    
-    # Max features
-    pred_max = ppi_model(
-        features["max_inter_attn"],
-        features["max_attn_AA"],
-        features["max_attn_BB"],
-        features["max_embed_A"],
-        features["max_embed_B"],
-    )
-    pred_max_swap = ppi_model(
-        features["max_inter_attn"],
-        features["max_attn_BB"],
-        features["max_attn_AA"],
-        features["max_embed_B"],
-        features["max_embed_A"],
-    )
-    pred_max = (pred_max + pred_max_swap) / 2
-    
-    # Ensemble prediction (average of mean and max)
-    prediction = (pred_mean + pred_max) / 2
-    
-    return prediction.squeeze().cpu().numpy()
+def predict_with_weights(ppi_model, features, ppi_weights):
+    """Predict using the full 10-model ensemble (5 mean + 5 max classifier weights)."""
+    with torch.no_grad():
+        predictions_list = []
+        
+        # 1. 5 Mean-pooling classifiers
+        for model_weight in ppi_weights['mean']:
+            ppi_model.load_state_dict(model_weight)
+            pred = ppi_model(
+                features["mean_inter_attn"],
+                features["mean_attn_AA"],
+                features["mean_attn_BB"],
+                features["mean_embed_A"],
+                features["mean_embed_B"],
+            )
+            pred_swap = ppi_model(
+                features["mean_inter_attn"],
+                features["mean_attn_BB"],
+                features["mean_attn_AA"],
+                features["mean_embed_B"],
+                features["mean_embed_A"],
+            )
+            pred_sym = (pred + pred_swap) / 2
+            predictions_list.append(pred_sym)
+            
+        # 2. 5 Max-pooling classifiers
+        for model_weight in ppi_weights['max']:
+            ppi_model.load_state_dict(model_weight)
+            pred = ppi_model(
+                features["max_inter_attn"],
+                features["max_attn_AA"],
+                features["max_attn_BB"],
+                features["max_embed_A"],
+                features["max_embed_B"],
+            )
+            pred_swap = ppi_model(
+                features["max_inter_attn"],
+                features["max_attn_BB"],
+                features["max_attn_AA"],
+                features["max_embed_B"],
+                features["max_embed_A"],
+            )
+            pred_sym = (pred + pred_swap) / 2
+            predictions_list.append(pred_sym)
+            
+        # Average over all 10 ensemble models
+        predictions = torch.stack(predictions_list)
+        final_score = torch.mean(predictions, dim=0).squeeze().detach().cpu().numpy()
+        return float(final_score)
 
 
 def main():

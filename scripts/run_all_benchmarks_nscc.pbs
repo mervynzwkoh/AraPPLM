@@ -15,7 +15,14 @@
 #PBS -j oe
 #PBS -o pplm_all_benchmarks.log
 
-cd $PBS_O_WORKDIR || exit 1
+if [ -d "$PBS_O_WORKDIR/scripts" ]; then
+    cd "$PBS_O_WORKDIR"
+elif [ -d "$HOME/AraPPLM/scripts" ]; then
+    cd "$HOME/AraPPLM"
+elif [ -d "$HOME/AIS5281-Plant-PPLM/scripts" ]; then
+    cd "$HOME/AIS5281-Plant-PPLM"
+fi
+
 echo "=== Benchmark Job started on $(hostname) at $(date) ==="
 echo "Working directory: $(pwd)"
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
