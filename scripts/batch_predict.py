@@ -96,8 +96,23 @@ def load_models(device):
     return pplm_model, batch_converter, ppi_model, ppi_weights
 
 
-def get_features(model, batch_converter, seqA, seqB, device):
-    """Extract features from PPLM for a protein pair."""
+def get_features(model, batch_converter, seqA, seqB, device, max_pair_len=1020):
+    """
+    Extract features from PPLM for a protein pair.
+    
+    In accordance with the PPLM paper:
+    'sequence pairs with full lengths exceeding 1024 residues are cropped.'
+    We enforce (len(seqA) + len(seqB) <= max_pair_len) using proportional cropping.
+    """
+    total_len = len(seqA) + len(seqB)
+    if total_len > max_pair_len:
+        # Proportional budget allocation ensuring balanced context for both proteins
+        ratio_A = len(seqA) / total_len
+        budget_A = max(50, int(max_pair_len * ratio_A))
+        budget_B = max_pair_len - budget_A
+        seqA = seqA[:budget_A]
+        seqB = seqB[:budget_B]
+        
     seqA_labels, seqA_strs, seqA_tokens = batch_converter([("seqA", seqA)])
     seqB_labels, seqB_strs, seqB_tokens = batch_converter([("seqB", seqB)])
     tokens = torch.cat([seqA_tokens, seqB_tokens], dim=-1).to(device)
@@ -117,27 +132,31 @@ def get_features(model, batch_converter, seqA, seqB, device):
             return_contacts=False,
         )
     
-    embed_A = out["representations"][33][0, 1 : len(seqA) + 1, :]
-    embed_B = out["representations"][33][0, -(len(seqB) + 1) : -1, :]
-    
-    attn_AA = out["attentions"].squeeze()[:, :, 1 : len(seqA) + 1, 1 : len(seqA) + 1].reshape(33 * 20, len(seqA), len(seqA))
-    attn_AB = out["attentions"].squeeze()[:, :, 1 : len(seqA) + 1, -(len(seqB) + 1) : -1].reshape(33 * 20, len(seqA), len(seqB))
-    attn_BA = out["attentions"].squeeze()[:, :, -(len(seqB) + 1) : -1, 1 : len(seqA) + 1].reshape(33 * 20, len(seqB), len(seqA))
-    attn_BB = out["attentions"].squeeze()[:, :, -(len(seqB) + 1) : -1, -(len(seqB) + 1) : -1].reshape(33 * 20, len(seqB), len(seqB))
-    inter_attn = (attn_AB + attn_BA.transpose(1, 2)) / 2
-    
-    features = {
-        "mean_inter_attn": inter_attn.mean(dim=[1, 2]).unsqueeze(0),
-        "mean_attn_AA": attn_AA.mean(dim=[1, 2]).unsqueeze(0),
-        "mean_attn_BB": attn_BB.mean(dim=[1, 2]).unsqueeze(0),
-        "mean_embed_A": embed_A.mean(dim=[0]).unsqueeze(0),
-        "mean_embed_B": embed_B.mean(dim=[0]).unsqueeze(0),
-        "max_inter_attn": torch.amax(inter_attn, dim=(1, 2)).unsqueeze(0),
-        "max_attn_AA": torch.amax(attn_AA, dim=(1, 2)).unsqueeze(0),
-        "max_attn_BB": torch.amax(attn_BB, dim=(1, 2)).unsqueeze(0),
-        "max_embed_A": torch.amax(embed_A, dim=0).unsqueeze(0),
-        "max_embed_B": torch.amax(embed_B, dim=0).unsqueeze(0),
-    }
+        embed_A = out["representations"][33][0, 1 : len(seqA) + 1, :]
+        embed_B = out["representations"][33][0, -(len(seqB) + 1) : -1, :]
+        
+        attns = out["attentions"].squeeze()
+        attn_AA = attns[:, :, 1 : len(seqA) + 1, 1 : len(seqA) + 1].reshape(33 * 20, len(seqA), len(seqA))
+        attn_AB = attns[:, :, 1 : len(seqA) + 1, -(len(seqB) + 1) : -1].reshape(33 * 20, len(seqA), len(seqB))
+        attn_BA = attns[:, :, -(len(seqB) + 1) : -1, 1 : len(seqA) + 1].reshape(33 * 20, len(seqB), len(seqA))
+        attn_BB = attns[:, :, -(len(seqB) + 1) : -1, -(len(seqB) + 1) : -1].reshape(33 * 20, len(seqB), len(seqB))
+        inter_attn = (attn_AB + attn_BA.transpose(1, 2)) / 2
+        
+        features = {
+            "mean_inter_attn": inter_attn.mean(dim=[1, 2]).unsqueeze(0),
+            "mean_attn_AA": attn_AA.mean(dim=[1, 2]).unsqueeze(0),
+            "mean_attn_BB": attn_BB.mean(dim=[1, 2]).unsqueeze(0),
+            "mean_embed_A": embed_A.mean(dim=[0]).unsqueeze(0),
+            "mean_embed_B": embed_B.mean(dim=[0]).unsqueeze(0),
+            "max_inter_attn": torch.amax(inter_attn, dim=(1, 2)).unsqueeze(0),
+            "max_attn_AA": torch.amax(attn_AA, dim=(1, 2)).unsqueeze(0),
+            "max_attn_BB": torch.amax(attn_BB, dim=(1, 2)).unsqueeze(0),
+            "max_embed_A": torch.amax(embed_A, dim=0).unsqueeze(0),
+            "max_embed_B": torch.amax(embed_B, dim=0).unsqueeze(0),
+        }
+        
+        # Explicitly delete bulky intermediate attention tensors from VRAM
+        del out, attns, attn_AA, attn_AB, attn_BA, attn_BB, inter_attn, embed_A, embed_B, tokens, inter_chain_mask
     
     return features
 
@@ -200,6 +219,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size for GPU inference")
     parser.add_argument("--gpu_id", type=int, default=0, help="GPU device ID")
     parser.add_argument("--seq_db", required=True, help="Path to pickled sequence dictionary")
+    parser.add_argument("--max_pair_len", type=int, default=1020, help="Maximum combined sequence pair length (LA + LB <= 1020) matching PPLM paper pretraining")
     args = parser.parse_args()
     
     # Setup device
@@ -249,19 +269,33 @@ def main():
                 skipped += 1
                 continue
             
-            # Get features
-            features = get_features(pplm_model, batch_converter, seqA, seqB, device)
-            
-            # Predict (average over all 10 weight sets)
-            score = predict_with_weights(ppi_model, features, ppi_weights)
-            batch_scores.append((f"{protA}:{protB}", score, label))
+            try:
+                # Get features with combined pair length constraint (LA + LB <= 1020)
+                features = get_features(pplm_model, batch_converter, seqA, seqB, device, max_pair_len=args.max_pair_len)
+                score = predict_with_weights(ppi_model, features, ppi_weights)
+                batch_scores.append((f"{protA}:{protB}", score, label))
+            except torch.cuda.OutOfMemoryError:
+                # Resilient fallback: Clear VRAM and retry with tighter pair budget
+                torch.cuda.empty_cache()
+                try:
+                    features = get_features(pplm_model, batch_converter, seqA, seqB, device, max_pair_len=800)
+                    score = predict_with_weights(ppi_model, features, ppi_weights)
+                    batch_scores.append((f"{protA}:{protB}", score, label))
+                except Exception as e:
+                    print(f"WARNING: Error predicting pair {protA}:{protB} ({e}), skipping")
+                    skipped += 1
+                    torch.cuda.empty_cache()
         
         results.extend(batch_scores)
         
+        # Periodic cache cleanup
+        if i % 200 == 0 and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         # Progress report
-        if (i + len(batch)) % 1000 == 0:
+        if (i + len(batch)) % 1000 == 0 or (i + len(batch)) >= len(rows):
             elapsed = time.time() - start_time
-            rate = (i + len(batch)) / elapsed
+            rate = (i + len(batch)) / max(0.1, elapsed)
             print(f"  Progress: {i + len(batch)}/{len(rows)} ({rate:.1f} pairs/sec)")
     
     # Save results
