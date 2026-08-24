@@ -129,8 +129,8 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
           f"({metrics['Positive_Samples']:,} positive, {metrics['Negative_Samples']:,} negative | "
           f"Ratio 1:{metrics['Negative_Samples']/max(1, metrics['Positive_Samples']):.1f})")
     print("-" * 70)
-    print(f"  ★ AUPRC (Primary Metric):   {metrics['AUPRC']:.4f}")
-    print(f"  ★ AUROC:                    {metrics['AUROC']:.4f}")
+    print(f"  [*] AUPRC (Primary Metric):   {metrics['AUPRC']:.4f}")
+    print(f"  [*] AUROC:                    {metrics['AUROC']:.4f}")
     print(f"  F1 Score (thresh=0.5):      {metrics['F1_Score']:.4f}")
     print(f"  Precision:                  {metrics['Precision']:.4f}")
     print(f"  Sensitivity (Recall):       {metrics['Sensitivity_Recall']:.4f}")
@@ -158,7 +158,7 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
 def evaluate_file(csv_path, task_name="Task", output_dir=None):
     """Load predictions CSV and compute metrics."""
     if not os.path.exists(csv_path):
-        print(f"❌ Error: File not found: {csv_path}")
+        print(f"[!] Error: File not found: {csv_path}")
         return None
 
     df = pd.read_csv(csv_path)

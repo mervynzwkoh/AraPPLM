@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-**Objective:** Benchmark the pre-trained PPLM (Paired Protein Language Model) on *Arabidopsis thaliana* and *Oryza sativa* (Rice) protein-protein interaction (PPI) datasets to evaluate zero-shot cross-species generalization from animal/human to plant proteins.
+**Objective:** Benchmark the pre-trained PPLM (Paired Protein Language Model) on *Arabidopsis thaliana* and *Oryza sativa* (Rice) protein-protein interaction (PPI) datasets to evaluate zero-shot cross-species generalization from animal/human to plant proteins, and establish a foundation for plant-specific fine-tuning.
 
-**Key Challenge:** PPLM was trained on human, yeast, E. coli, C. elegans, D. melanogaster, and mouse PPI data. The goal is to evaluate its performance against the DeepAraPPI plant benchmarks without fine-tuning, and lay the groundwork for subsequent plant-specific fine-tuning.
+**Key Challenge:** PPLM was trained exclusively on human, yeast, E. coli, C. elegans, D. melanogaster, and mouse PPI data. The goal is to evaluate its zero-shot performance against plant benchmarks (DeepAraPPI, ESMAraPPI, AraCoFusion) without fine-tuning, and subsequently fine-tune Plant-PPLM.
 
 ---
 
@@ -20,9 +20,10 @@ AraPPLM/
 │   └── weights/                        # pplm_t33_650M.pt & ppi_models.pkl (HPC)
 │
 ├── scripts/                            # Custom execution & data tools
-│   ├── batch_predict.py                # Core batch inference script
-│   ├── evaluate_pplm.py                # Evaluation & DeepAraPPI benchmark comparison
-│   ├── run_all_benchmarks_nscc.pbs     # PBS batch script for all 4 benchmark tasks
+│   ├── batch_predict.py                # Core batch inference script (with combined pair cropping)
+│   ├── evaluate_pplm.py                # Evaluation & benchmark comparison engine
+│   ├── run_all_benchmarks_nscc.pbs     # PBS batch script for complete 4-task execution
+│   ├── run_remaining_benchmarks_nscc.pbs # PBS continuation script (Tasks 3, 4 & eval)
 │   ├── run_batch_predict_nscc.pbs      # PBS script for single-task execution
 │   └── data_preparation/
 │       ├── build_sequence_db.py        # Unified FASTA -> PKL builder with regex
@@ -31,12 +32,14 @@ AraPPLM/
 │       └── merge_rice_uniparc.py       # Rice UniParc merger script
 │
 ├── data/
-│   ├── DeepAraPPI/                     # Benchmark interaction datasets
-│   │   ├── c1_ppi_sample_DeepAraPPI.txt # Task 1 (C1: ~1k pairs)
-│   │   ├── c2_ppi_sample_DeepAraPPI.txt # Task 2 (C2: ~3k pairs, one unseen)
-│   │   ├── c3_ppi_sample_DeepAraPPI.txt # Task 3 (C3: ~1.5k pairs, both unseen)
+│   ├── DeepAraPPI/                     # DeepAraPPI benchmark interaction datasets
+│   │   ├── c1_ppi_sample_DeepAraPPI.txt # Task 1 (C1: 31,284 pairs)
+│   │   ├── c2_ppi_sample_DeepAraPPI.txt # Task 2 (C2: 66,055 pairs, one unseen)
+│   │   ├── c3_ppi_sample_DeepAraPPI.txt # Task 3 (C3: 33,099 pairs, both unseen)
 │   │   ├── total_positive_negative_samples_DeepAraPPI.txt # Full 130k pairs
-│   │   └── all_rice_positive_negative_DeepAraPPI.txt      # Task 4 (Rice: 6.7k pairs)
+│   │   └── all_rice_positive_negative_DeepAraPPI.txt      # Task 4 (Rice: 6,721 pairs)
+│   │
+│   ├── ESMAraPPI/                      # [UPCOMING] ESMAraPPI benchmark datasets
 │   │
 │   ├── arabidopsis/                    # Arabidopsis sequence database
 │   │   ├── missing_ids.txt             # 348 rescued IDs
@@ -49,56 +52,64 @@ AraPPLM/
 │       ├── missing_rice.fasta          # Rescued UniParc sequences
 │       └── uniprot_rice_final.pkl      # 100% complete database (~100k entries)
 │
-├── results/                            # Benchmark predictions & summaries
+├── results/
+│   ├── DeepAraPPI/                     # DeepAraPPI benchmark predictions & evaluations
+│   │   ├── deepara_c1_scores.csv
+│   │   ├── deepara_c2_scores.csv
+│   │   ├── deepara_c3_scores.csv
+│   │   ├── deepara_rice_scores.csv
+│   │   ├── benchmark_summary.csv
+│   │   └── task*_metrics.txt
+│   │
+│   └── ESMAraPPI/                      # [UPCOMING] ESMAraPPI benchmark results
 │
 ├── docs/                               # Comprehensive project documentation
 │   ├── technical_summary.md            # Architecture & progress tracker
 │   ├── data_processing_pipeline.md     # Detailed data preparation documentation
-│   └── plant-pplm-methodology.md       # Plant-PPLM methodology design
+│   ├── plant-pplm-methodology.md       # Plant-PPLM methodology design
+│   ├── benchmark_analysis_deeparappi_vs_pplm.md # DeepAraPPI technical report
+│   └── lit_review/                     # Paper information extraction templates
+│       ├── LitReview_DeepAraPPI.md
+│       ├── LitReview_ESMAraPPI.md
+│       ├── LitReview_AraCoFusion.md
+│       └── Lit_Review_PPLM.md
 │
 └── PPLM_NSCC_A100.yml                  # A100-optimized Conda environment specification
 ```
 
 ---
 
-## Benchmarking Progress
+## Benchmarking Progress & Empirical Results
 
-### Phase 1: Environment Setup ✓
-- [x] Verified PPLM installation on NSCC ASPIRE 2A HPC (RHEL 8 + PBS Pro).
-- [x] Configured `PPLM_NSCC_A100.yml` with PyTorch 2.x and CUDA 12.4.
-- [x] Verified NVIDIA A100-SXM4-40GB GPU accessibility.
-- [x] Model weights linked in `PPLM/weights/`.
+### Phase 1: Environment & Tooling Setup ✓
+- [x] Verified PPLM on NSCC ASPIRE 2A HPC (A100 GPU).
+- [x] Implemented combined paired length cropping ($L_A + L_B \le 1020$) matching PPLM paper pretraining.
+- [x] Implemented 10-fold classifier ensemble with symmetric pair averaging.
 
 ### Phase 2: Sequence Database Preparation ✓
-- [x] **Arabidopsis thaliana:**
-  - Resolved Swiss-Prot/TrEMBL header formatting using regex parsing.
-  - Rescued 348 legacy UniParc sequences.
-  - **100.00% coverage verified** (130,478 / 130,478 pairs).
-- [x] **Oryza sativa (Rice):**
-  - Resolved *japonica* vs *indica* subspecies mismatch.
-  - Rescued 163 missing accessions via UniParc integration (`merge_rice_uniparc.py`).
-  - **100.00% coverage verified** (6,721 / 6,721 pairs).
+- [x] **Arabidopsis:** 100.00% sequence coverage (109,640 entries).
+- [x] **Rice:** 100.00% sequence coverage (100,297 entries).
 
-### Phase 3: Batch Prediction Pipeline ✓
-- [x] Path resolution configured in `scripts/batch_predict.py` for repository root.
-- [x] GPU feature extraction (inter-chain attention, intra-chain attention, embeddings).
-- [x] 10-weight classifier ensemble inference.
-- [x] Configured PBS batch job runners for single-task and multi-task execution on A100 GPU.
+### Phase 3: DeepAraPPI Benchmark Completed ✓
 
-### Phase 4: Evaluation Framework ✓
-- [x] Built `scripts/evaluate_pplm.py` supporting:
-  - **AUPRC** (Primary plant PPI metric).
-  - **AUROC**, F1-Score, MCC, Accuracy, Sensitivity, Specificity.
-  - Direct comparison tables against DeepAraPPI baselines (DeepAraPPI, GO2vec, Domain2vec, RCNN).
-  - Multi-task automated consolidated reports (`results/benchmark_summary.csv`).
+Across all 137,159 test pairs in the DeepAraPPI suite:
+
+| Task | Test Dataset | Difficulty | DeepAraPPI Baseline (AUPRC) | PPLM Zero-Shot (AUPRC) | PPLM AUROC | PPLM Specificity |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Task 1** | `c1_ppi_sample_DeepAraPPI.txt` | Low (Seen domain) | **0.9650** | **0.6095** | **0.8991** | 99.55% |
+| **Task 2** | `c2_ppi_sample_DeepAraPPI.txt` | Medium (One unseen) | **0.8970** | **0.5738** | **0.8828** | 99.57% |
+| **Task 3** | `c3_ppi_sample_DeepAraPPI.txt` | High (Both unseen) | **0.8250** (Seq-only: 0.4810) | **0.5525** | **0.8710** | 99.50% |
+| **Task 4** | `all_rice_positive_negative_DeepAraPPI.txt` | Cross-Species (Rice) | **0.3050** | **0.4297** | **0.7561** | 98.35% |
+
+### Key Findings:
+1. **Cross-Species Transfer (Rice):** PPLM beats DeepAraPPI by **+40.9%** (0.4297 vs 0.3050) and beats RCNN sequence baseline (0.2480) by **+73.3%**.
+2. **Hard Unseen Pairs (Task 3):** PPLM (**0.5525**) outperforms DeepAraPPI's sequence-only RCNN model (**0.4810**) and Random Forest (**0.4340**).
+3. **Arabidopsis In-Domain:** High AUROC (0.87–0.90) and specificity (>99.5%) provide a solid baseline for Phase 4 fine-tuning.
 
 ---
 
-## Benchmark Suite Targets (DeepAraPPI)
-
-| Task | Test Dataset | Difficulty | Primary Metric (AUPRC Baseline) |
-| :--- | :--- | :--- | :--- |
-| **Task 1** | `c1_ppi_sample_DeepAraPPI.txt` | Low (Seen domain) | DeepAraPPI: **0.965** |
-| **Task 2** | `c2_ppi_sample_DeepAraPPI.txt` | Medium (One unseen) | DeepAraPPI: **0.897** |
-| **Task 3** | `c3_ppi_sample_DeepAraPPI.txt` | High (Both unseen) | DeepAraPPI: **0.825** |
-| **Task 4** | `all_rice_positive_negative_DeepAraPPI.txt` | Cross-Species (Rice) | DeepAraPPI: **0.305** |
+## Next Steps: ESMAraPPI Benchmark & Fine-Tuning
+1. Download / prepare ESMAraPPI datasets into `data/ESMAraPPI/`.
+2. Verify sequence ID coverage against existing sequence databases.
+3. Run batch prediction and evaluate performance in `results/ESMAraPPI/`.
+4. Proceed to Plant-PPLM LoRA Fine-Tuning.

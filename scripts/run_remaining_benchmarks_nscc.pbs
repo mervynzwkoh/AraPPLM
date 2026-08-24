@@ -1,19 +1,18 @@
 #!/bin/bash
 # ==============================================================================
-# PBS Job Script: Run All DeepAraPPI Benchmarks on NSCC ASPIRE 2A (NVIDIA A100)
+# PBS Job Script: Run Remaining DeepAraPPI Benchmarks (Tasks 3, 4 & Evaluation)
 # Evaluates:
-#   1. Task 1 (C1 test sample, ~1k pairs)
-#   2. Task 2 (C2 test sample, ~3k pairs - One Unseen Protein)
-#   3. Task 3 (C3 test sample, ~1.5k pairs - Both Unseen Proteins)
-#   4. Task 4 (Rice cross-species, ~6.7k pairs)
+#   1. Task 3 (C3 test sample, 33,099 pairs - Both Unseen Proteins, ~75 mins)
+#   2. Task 4 (Rice cross-species, 6,721 pairs, ~15 mins)
+#   3. Comprehensive Evaluation of all 4 Tasks (C1, C2, C3, Rice)
 # ==============================================================================
-#PBS -N pplm_deepara_benchmarks
+#PBS -N pplm_remaining_benchmarks
 #PBS -P personal-e0969134
 #PBS -q normal
 #PBS -l select=1:ncpus=8:ngpus=1:mem=64GB
-#PBS -l walltime=04:00:00
+#PBS -l walltime=03:00:00
 #PBS -j oe
-#PBS -o pplm_all_benchmarks.log
+#PBS -o pplm_remaining_benchmarks.log
 
 if [ -d "$PBS_O_WORKDIR/scripts" ]; then
     cd "$PBS_O_WORKDIR"
@@ -23,7 +22,7 @@ elif [ -d "$HOME/AIS5281-Plant-PPLM/scripts" ]; then
     cd "$HOME/AIS5281-Plant-PPLM"
 fi
 
-echo "=== Benchmark Job started on $(hostname) at $(date) ==="
+echo "=== Continuation Benchmark Job started on $(hostname) at $(date) ==="
 echo "Working directory: $(pwd)"
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
@@ -37,7 +36,6 @@ elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
 fi
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-
 conda activate PPLM_NSCC_A100
 
 echo "Python binary: $(which python)"
@@ -51,29 +49,7 @@ RICE_SEQ_DB="data/rice/uniprot_rice_final.pkl"
 BATCH_SIZE=4
 
 # ------------------------------------------------------------------------------
-# 1. Benchmark Task 1: C1 Sample
-# ------------------------------------------------------------------------------
-echo -e "\n>>> [1/4] Running Benchmark: Task 1 (C1 Sample) <<<"
-python -u scripts/batch_predict.py \
-    --input data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt \
-    --output "$OUTPUT_DIR/deepara_c1_scores.csv" \
-    --batch_size $BATCH_SIZE \
-    --gpu_id 0 \
-    --seq_db "$ARABIDOPSIS_SEQ_DB"
-
-# ------------------------------------------------------------------------------
-# 2. Benchmark Task 2: C2 Sample (One Unseen Protein)
-# ------------------------------------------------------------------------------
-echo -e "\n>>> [2/4] Running Benchmark: Task 2 (C2 Sample - One Unseen) <<<"
-python -u scripts/batch_predict.py \
-    --input data/DeepAraPPI/c2_ppi_sample_DeepAraPPI.txt \
-    --output "$OUTPUT_DIR/deepara_c2_scores.csv" \
-    --batch_size $BATCH_SIZE \
-    --gpu_id 0 \
-    --seq_db "$ARABIDOPSIS_SEQ_DB"
-
-# ------------------------------------------------------------------------------
-# 3. Benchmark Task 3: C3 Sample (Both Unseen Proteins)
+# 1. Benchmark Task 3: C3 Sample (Both Unseen Proteins, ~33k pairs)
 # ------------------------------------------------------------------------------
 echo -e "\n>>> [3/4] Running Benchmark: Task 3 (C3 Sample - Both Unseen) <<<"
 python -u scripts/batch_predict.py \
@@ -84,7 +60,7 @@ python -u scripts/batch_predict.py \
     --seq_db "$ARABIDOPSIS_SEQ_DB"
 
 # ------------------------------------------------------------------------------
-# 4. Benchmark Task 4: Rice Cross-Species Generalization
+# 2. Benchmark Task 4: Rice Cross-Species Generalization (~6.7k pairs)
 # ------------------------------------------------------------------------------
 if [ -f "$RICE_SEQ_DB" ]; then
     echo -e "\n>>> [4/4] Running Benchmark: Task 4 (Rice Cross-Species) <<<"
@@ -99,9 +75,9 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 5. Evaluate All Predictions Against DeepAraPPI Baselines
+# 3. Evaluate All 4 Prediction Datasets Against DeepAraPPI Baselines
 # ------------------------------------------------------------------------------
-echo -e "\n>>> Running Comprehensive Evaluation <<<"
+echo -e "\n>>> Running Comprehensive 4-Task Evaluation <<<"
 python -u scripts/evaluate_pplm.py \
     --c1 "$OUTPUT_DIR/deepara_c1_scores.csv" \
     --c2 "$OUTPUT_DIR/deepara_c2_scores.csv" \
