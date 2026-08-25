@@ -69,6 +69,28 @@ DEEPARAPPI_BASELINES = {
     },
 }
 
+# Reference benchmark baselines from ESMAraPPI (Zhou et al., 2023)
+ESMARAPPI_BASELINES = {
+    "ESM_C2": {
+        "Description": "ESMAraPPI C2 Test Set (One Unseen Protein, 37,444 pairs)",
+        "ESMAraPPI": 0.834,
+        "DeepAraPPI": 0.871,
+        "TAGPPI": 0.700,
+        "PIPR": 0.588,
+        "RAPPPID": 0.516,
+        "D-SCRIPT": 0.292,
+    },
+    "ESM_C3": {
+        "Description": "ESMAraPPI C3 Test Set (Both Unseen Proteins, 8,866 pairs)",
+        "ESMAraPPI": 0.810,
+        "DeepAraPPI": 0.785,
+        "TAGPPI": 0.554,
+        "PIPR": 0.387,
+        "RAPPPID": 0.371,
+        "D-SCRIPT": 0.291,
+    },
+}
+
 def compute_metrics(y_true, y_score, threshold=0.5):
     """Compute comprehensive classification and ranking metrics."""
     # Ranking metrics (Threshold-independent)
@@ -139,20 +161,44 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
     print(f"  Accuracy:                   {metrics['Accuracy']:.4f}")
     print(f"  Optimal F1:                 {metrics['Best_F1']:.4f} (at threshold {metrics['Best_Threshold']:.4f})")
 
-    # Comparison against DeepAraPPI paper
+def print_task_evaluation(task_name, metrics, baseline_dict=None):
+    """Print formatted evaluation report."""
+    print("=" * 70)
+    print(f"EVALUATION REPORT: {task_name.upper()}")
+    if baseline_dict and task_name in baseline_dict:
+        print(f"Description: {baseline_dict[task_name].get('Description', '')}")
+    print("=" * 70)
+
+    print(f"Dataset Size:     {metrics['Total_Samples']:,} pairs "
+          f"({metrics['Positive_Samples']:,} positive, {metrics['Negative_Samples']:,} negative | "
+          f"Ratio 1:{metrics['Negative_Samples']/max(1, metrics['Positive_Samples']):.1f})")
+    print("-" * 70)
+    print(f"  [*] AUPRC (Primary Metric):   {metrics['AUPRC']:.4f}")
+    print(f"  [*] AUROC:                    {metrics['AUROC']:.4f}")
+    print(f"  F1 Score (thresh=0.5):      {metrics['F1_Score']:.4f}")
+    print(f"  Precision:                  {metrics['Precision']:.4f}")
+    print(f"  Sensitivity (Recall):       {metrics['Sensitivity_Recall']:.4f}")
+    print(f"  Specificity:                {metrics['Specificity']:.4f}")
+    print(f"  MCC:                        {metrics['MCC']:.4f}")
+    print(f"  Accuracy:                   {metrics['Accuracy']:.4f}")
+    print(f"  Optimal F1:                 {metrics['Best_F1']:.4f} (at threshold {metrics['Best_Threshold']:.4f})")
+
+    # Comparison against baselines
     if baseline_dict and task_name in baseline_dict:
         b = baseline_dict[task_name]
         print("-" * 70)
-        print("COMPARISON WITH DEEPARAPPI BENCHMARKS (AUPRC):")
+        benchmark_suite = "ESMARAPPI" if "ESM" in task_name else "DEEPARAPPI"
+        print(f"COMPARISON WITH {benchmark_suite} BENCHMARKS (AUPRC):")
         print(f"  PPLM (Zero-Shot):           {metrics['AUPRC']:.4f}")
-        print(f"  DeepAraPPI (Integrated):    {b.get('DeepAraPPI', 'N/A'):.4f}")
-        print(f"  GO2vec (DeepAraPPI):        {b.get('GO2vec', 'N/A'):.4f}")
-        print(f"  Domain2vec (DeepAraPPI):    {b.get('Domain2vec', 'N/A'):.4f}")
-        print(f"  RCNN (DeepAraPPI):          {b.get('RCNN', 'N/A'):.4f}")
+        for model_k, val in b.items():
+            if model_k != "Description":
+                print(f"  {model_k:<27} {val:.4f}")
 
-        delta = metrics['AUPRC'] - b.get('DeepAraPPI', 0)
-        sign = "+" if delta >= 0 else ""
-        print(f"  PPLM vs DeepAraPPI:         {sign}{delta:.4f}")
+        primary_comp = "ESMAraPPI" if "ESMAraPPI" in b else "DeepAraPPI"
+        if primary_comp in b:
+            delta = metrics['AUPRC'] - b[primary_comp]
+            sign = "+" if delta >= 0 else ""
+            print(f"  PPLM vs {primary_comp}:         {sign}{delta:.4f}")
     print("=" * 70 + "\n")
 
 def evaluate_file(csv_path, task_name="Task", output_dir=None):
@@ -163,14 +209,15 @@ def evaluate_file(csv_path, task_name="Task", output_dir=None):
 
     df = pd.read_csv(csv_path)
     if "pred_score" not in df.columns or "true_label" not in df.columns:
-        print(f"❌ Error: CSV must contain 'pred_score' and 'true_label' columns.")
+        print(f"[!] Error: CSV must contain 'pred_score' and 'true_label' columns.")
         return None
 
     y_true = df["true_label"].values
     y_score = df["pred_score"].values
 
     metrics = compute_metrics(y_true, y_score)
-    print_task_evaluation(task_name, metrics, DEEPARAPPI_BASELINES)
+    all_baselines = {**DEEPARAPPI_BASELINES, **ESMARAPPI_BASELINES}
+    print_task_evaluation(task_name, metrics, all_baselines)
 
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
@@ -184,16 +231,21 @@ def evaluate_file(csv_path, task_name="Task", output_dir=None):
     return metrics
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate PPLM on DeepAraPPI Benchmarks")
+    parser = argparse.ArgumentParser(description="Evaluate PPLM on Plant PPI Benchmarks (DeepAraPPI / ESMAraPPI)")
     # Single file evaluation
     parser.add_argument("--input", help="Single prediction CSV file")
-    parser.add_argument("--task", default="Task", choices=["Task1", "Task2", "Task3", "Task4_Rice", "Custom"], help="Task name for benchmark lookup")
+    parser.add_argument("--task", default="Task", choices=["Task1", "Task2", "Task3", "Task4_Rice", "ESM_C2", "ESM_C3", "Custom"], help="Task name for benchmark lookup")
     
-    # Multi-file evaluation
-    parser.add_argument("--c1", help="Path to C1 test prediction CSV")
-    parser.add_argument("--c2", help="Path to C2 test prediction CSV")
-    parser.add_argument("--c3", help="Path to C3 test prediction CSV")
-    parser.add_argument("--rice", help="Path to Rice test prediction CSV")
+    # DeepAraPPI multi-file evaluation
+    parser.add_argument("--c1", help="Path to DeepAraPPI C1 test prediction CSV")
+    parser.add_argument("--c2", help="Path to DeepAraPPI C2 test prediction CSV")
+    parser.add_argument("--c3", help="Path to DeepAraPPI C3 test prediction CSV")
+    parser.add_argument("--rice", help="Path to DeepAraPPI Rice test prediction CSV")
+    
+    # ESMAraPPI multi-file evaluation
+    parser.add_argument("--esm_c2", help="Path to ESMAraPPI C2 prediction CSV")
+    parser.add_argument("--esm_c3", help="Path to ESMAraPPI C3 prediction CSV")
+    
     parser.add_argument("--output_dir", default="results", help="Directory to save metric summary reports")
 
     args = parser.parse_args()
@@ -205,6 +257,7 @@ def main():
         if m:
             results_table.append({"Task": args.task, **m})
 
+    # DeepAraPPI evaluations
     if args.c1:
         m = evaluate_file(args.c1, task_name="Task1", output_dir=args.output_dir)
         if m:
@@ -225,11 +278,22 @@ def main():
         if m:
             results_table.append({"Task": "Task4 (Rice)", **m})
 
+    # ESMAraPPI evaluations
+    if args.esm_c2:
+        m = evaluate_file(args.esm_c2, task_name="ESM_C2", output_dir=args.output_dir)
+        if m:
+            results_table.append({"Task": "ESMAraPPI C2 (One Unseen)", **m})
+
+    if args.esm_c3:
+        m = evaluate_file(args.esm_c3, task_name="ESM_C3", output_dir=args.output_dir)
+        if m:
+            results_table.append({"Task": "ESMAraPPI C3 (Both Unseen)", **m})
+
     if len(results_table) > 1:
         df_summary = pd.DataFrame(results_table)
         summary_csv = os.path.join(args.output_dir, "benchmark_summary.csv")
         df_summary.to_csv(summary_csv, index=False)
-        print(f"\n📊 Consolidated Benchmark Summary saved to: {summary_csv}")
+        print(f"\n[INFO] Consolidated Benchmark Summary saved to: {summary_csv}")
 
 if __name__ == "__main__":
     main()
