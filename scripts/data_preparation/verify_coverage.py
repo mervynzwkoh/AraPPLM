@@ -80,7 +80,7 @@ def main():
     
     if missing_ids:
         sorted_missing = sorted(list(missing_ids))
-        print("\n⚠️ Sample Missing Protein IDs (first 10):")
+        print("\n[!] Sample Missing Protein IDs (first 10):")
         for mid in sorted_missing[:10]:
             print(f"  - {mid}")
             
@@ -89,13 +89,13 @@ def main():
             with open(args.output_missing, "w", encoding="utf-8") as out:
                 for mid in sorted_missing:
                     out.write(mid + "\n")
-            print(f"\n💾 Saved all {len(sorted_missing):,} missing protein IDs to: {args.output_missing}")
+            print(f"\n[INFO] Saved all {len(sorted_missing):,} missing protein IDs to: {args.output_missing}")
         else:
-            print("\n💡 Tip: Provide '--output_missing <filename.txt>' to save all missing IDs to a file.")
+            print("\n[TIP] Tip: Provide '--output_missing <filename.txt>' to save all missing IDs to a file.")
             
         sys.exit(1)
     else:
-        print("\n✅ Verification SUCCESS: 100% of protein pairs are present in the sequence database!")
+        print("\n[SUCCESS] Verification SUCCESS: 100% of protein pairs are present in the sequence database!")
 
 if __name__ == "__main__":
     main()

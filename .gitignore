@@ -45,3 +45,4 @@ models/*.bin
 Thumbs.db
 .DS_Store
 desktop.ini
+.literature-review/
