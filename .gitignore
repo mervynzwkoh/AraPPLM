@@ -28,10 +28,18 @@ data/**/*.pkl
 PPLM/weights/*.pt
 PPLM/weights/*.pkl
 
-# Future: your own fine-tuned checkpoints
-models/*.pt
-models/*.pkl
-models/*.bin
+# Trained model checkpoints & recordings
+models/**/*.pt
+models/**/*.pkl
+models/**/*.bin
+models/**/*.recording
+models/**/top*_list
+
+# Pre-extracted PPLM features (large, reproducible via extract_features.py)
+features/**/*.pkl
+
+# HPC log files
+*.log
 
 # ============================================================
 # IDE / Editor / OS
