@@ -19,62 +19,71 @@ AraPPLM/
 │   ├── pplm_contact/                   # Contact prediction module
 │   └── weights/                        # pplm_t33_650M.pt & ppi_models.pkl (HPC)
 │
-├── scripts/                            # Custom execution & data tools
+├── scripts/
 │   ├── batch_predict.py                # Core batch inference script (with combined pair cropping)
 │   ├── evaluate_pplm.py                # Evaluation & benchmark comparison engine
-│   ├── run_all_benchmarks_nscc.pbs     # PBS batch script for complete 4-task execution
-│   ├── run_remaining_benchmarks_nscc.pbs # PBS continuation script (Tasks 3, 4 & eval)
-│   ├── run_batch_predict_nscc.pbs      # PBS script for single-task execution
+│   ├── run_all_benchmarks_nscc.pbs     # PBS: 4-task zero-shot benchmarking
+│   ├── run_esmarappi_benchmarks_nscc.pbs # PBS: ESMAraPPI zero-shot benchmarking
+│   ├── run_train_deeparappi_nscc.pbs   # PBS: End-to-end DeepAraPPI C1 training
+│   ├── run_train_esmarappi_nscc.pbs    # PBS: End-to-end ESMAraPPI C1 training
+│   ├── run_resume_deeparappi_nscc.pbs  # PBS: Resume DeepAraPPI from Stage 3
+│   ├── benchmarking/                   # Benchmark script copies (for training pipeline)
+│   │   ├── batch_predict.py
+│   │   └── evaluate_pplm.py
+│   ├── training/                       # PPI head retraining pipeline
+│   │   ├── extract_features.py         # Stage 1: PPLM backbone → pooled feature .pkl files
+│   │   ├── train_ppi_head.py           # Stage 2: 10-fold stratified CV training
+│   │   ├── select_top_models.py        # Stage 3: Rank by AUPRC, package top-5 ensemble
+│   │   ├── test_ppi_head.py            # Stage 4: Ensemble inference on test sets
+│   │   ├── ppi_model.py                # PPI MLP classifier definition
+│   │   └── dataset.py                  # PyTorch Dataset for pre-extracted features
 │   └── data_preparation/
-│       ├── build_sequence_db.py        # Unified FASTA -> PKL builder with regex
+│       ├── build_sequence_db.py        # Unified FASTA -> PKL builder
 │       ├── verify_coverage.py          # Sequence database coverage verifier
-│       ├── fetch_dataset_sequences.py  # Automated UniProt REST sequence fetcher
 │       └── merge_rice_uniparc.py       # Rice UniParc merger script
 │
 ├── data/
-│   ├── DeepAraPPI/                     # DeepAraPPI benchmark interaction datasets
-│   │   ├── c1_ppi_sample_DeepAraPPI.txt # Task 1 (C1: 31,284 pairs)
-│   │   ├── c2_ppi_sample_DeepAraPPI.txt # Task 2 (C2: 66,055 pairs, one unseen)
-│   │   ├── c3_ppi_sample_DeepAraPPI.txt # Task 3 (C3: 33,099 pairs, both unseen)
-│   │   ├── total_positive_negative_samples_DeepAraPPI.txt # Full 130k pairs
-│   │   └── all_rice_positive_negative_DeepAraPPI.txt      # Task 4 (Rice: 6,721 pairs)
-│   │
-│   ├── ESMAraPPI/                      # [UPCOMING] ESMAraPPI benchmark datasets
-│   │
+│   ├── DeepAraPPI/                     # DeepAraPPI benchmark datasets
+│   │   ├── c1_ppi_sample_DeepAraPPI.txt # C1 training set (31,284 pairs)
+│   │   ├── c2_ppi_sample_DeepAraPPI.txt # C2 test (66,055 pairs, one unseen)
+│   │   ├── c3_ppi_sample_DeepAraPPI.txt # C3 test (33,099 pairs, both unseen)
+│   │   └── all_rice_positive_negative_DeepAraPPI.txt # Rice (6,721 pairs)
+│   ├── ESMAraPPI/                      # ESMAraPPI benchmark datasets
+│   │   ├── c1_Train.txt                # C1 training set (38,709 pairs)
+│   │   ├── c2Pred.txt                  # C2 test (37,444 pairs, one unseen)
+│   │   └── c3Pred.txt                  # C3 test (8,866 pairs, both unseen)
 │   ├── arabidopsis/                    # Arabidopsis sequence database
-│   │   ├── missing_ids.txt             # 348 rescued IDs
-│   │   ├── uniparc_348.fasta           # Rescued UniParc sequences
-│   │   ├── uniparc_id_mapping.json     # ID mapping JSON
-│   │   └── uniprot_final.pkl           # 100% complete database (~109k entries)
-│   │
+│   │   └── uniprot_final.pkl           # 100% complete (109,994 entries)
 │   └── rice/                           # Rice sequence database
-│       ├── missing_rice_ids.txt        # 163 rescued Rice IDs
-│       ├── missing_rice.fasta          # Rescued UniParc sequences
-│       └── uniprot_rice_final.pkl      # 100% complete database (~100k entries)
+│       └── uniprot_rice_final.pkl      # 100% complete (100,297 entries)
+│
+├── features/                           # Pre-extracted PPLM backbone features
+│   ├── DeepAraPPI_C1/                  # Feature .pkl files (31,284 pairs)
+│   └── ESMAraPPI_C1/                   # Feature .pkl files (38,709 pairs)
+│
+├── models/                             # Trained PPI head checkpoints
+│   ├── DeepAraPPI/                     # 10-fold CV checkpoints + ensemble weights
+│   └── ESMAraPPI/                      # 10-fold CV checkpoints + ensemble weights
 │
 ├── results/
-│   ├── DeepAraPPI/                     # DeepAraPPI benchmark predictions & evaluations
-│   │   ├── deepara_c1_scores.csv
-│   │   ├── deepara_c2_scores.csv
-│   │   ├── deepara_c3_scores.csv
-│   │   ├── deepara_rice_scores.csv
-│   │   ├── benchmark_summary.csv
-│   │   └── task*_metrics.txt
-│   │
-│   └── ESMAraPPI/                      # [UPCOMING] ESMAraPPI benchmark results
+│   ├── DeepAraPPI/                     # Zero-shot + plant-trained predictions
+│   └── ESMAraPPI/                      # Zero-shot + plant-trained predictions
 │
-├── docs/                               # Comprehensive project documentation
+├── logs/                               # HPC PBS job logs
+│   ├── benchmarking/                   # Zero-shot benchmark run logs
+│   └── training/                       # PPI head training run logs
+│
+├── docs/                               # Project documentation
 │   ├── technical_summary.md            # Architecture & progress tracker
-│   ├── data_processing_pipeline.md     # Detailed data preparation documentation
+│   ├── ppi_head_retraining_methodology.md # Retraining technical methodology
+│   ├── data_processing_pipeline.md     # Data preparation documentation
 │   ├── plant-pplm-methodology.md       # Plant-PPLM methodology design
-│   ├── benchmark_analysis_deeparappi_vs_pplm.md # DeepAraPPI technical report
-│   └── lit_review/                     # Paper information extraction templates
-│       ├── LitReview_DeepAraPPI.md
-│       ├── LitReview_ESMAraPPI.md
-│       ├── LitReview_AraCoFusion.md
-│       └── Lit_Review_PPLM.md
+│   ├── PPLM-PPI_pretraining_walkthrough.md # Retraining run instructions
+│   ├── benchmark_analysis_deeparappi_vs_pplm.md
+│   ├── benchmark_analysis_esmarappi_vs_pplm.md
+│   └── lit_review/                     # Literature review templates
 │
-└── PPLM_NSCC_A100.yml                  # A100-optimized Conda environment specification
+└── PPLM_NSCC_A100.yml                  # A100-optimized Conda environment
 ```
 
 ---
@@ -118,7 +127,30 @@ Across all **46,310 held-out test pairs** in the ESMAraPPI suite (with 40% seque
 
 ---
 
-## Next Steps: Plant-PPLM Supervised Fine-Tuning
-1. Formulate LoRA Parameter-Efficient Fine-Tuning ($r=8, \alpha=16$) on DeepAraPPI C1 and ESMAraPPI C1 training sets.
-2. Implement focal loss / class-weighted loss ($w_{pos} = 10.0$) to directly optimize for 1:10 interactome skewness.
-3. Target performance: $>0.900$ AUPRC on seen/semi-seen plant tasks and $>0.600$ on cross-species monocot transfer.
+### Phase 5: PPI Head Retraining (DeepAraPPI C1) — In Progress
+
+Retrained the PPLM-PPI MLP classifier head on the DeepAraPPI C1 training set (31,284 pairs) with frozen backbone. See [`ppi_head_retraining_methodology.md`](ppi_head_retraining_methodology.md) for full technical details.
+
+- [x] **Stage 1:** Feature extraction — PPLM backbone features extracted for all 31,284 C1 pairs
+- [x] **Stage 2:** MLP head training — 10-fold stratified CV × 2 pooling modes (mean, max)
+- [ ] **Stage 3:** Model selection — Package top-5 checkpoints per pooling mode
+- [ ] **Stage 4:** Test-set evaluation — C2, C3, Rice with plant-trained ensemble
+- [ ] **Stage 5:** Evaluation metrics — Compare against zero-shot baselines
+
+#### Cross-Validation Results (DeepAraPPI C1, 10-fold)
+
+| Pooling Mode | Average AUPRC | Best Fold AUPRC | Improvement over Zero-Shot C2 |
+| :--- | :--- | :--- | :--- |
+| **Mean** | **0.8965** | 0.9055 (Fold 7) | +56.2% (from 0.5738) |
+| **Max** | **0.8954** | 0.9042 (Fold 1) | +56.0% (from 0.5738) |
+
+---
+
+## Next Steps
+
+1. **Complete DeepAraPPI evaluation** — Run Stages 3–5 to produce test-set metrics on C2/C3/Rice with plant-trained weights (`qsub scripts/run_resume_deeparappi_nscc.pbs`)
+2. **ESMAraPPI C1 training** — Run the full pipeline on ESMAraPPI C1 (38,709 pairs), evaluate on ESMAraPPI C2/C3 (`qsub scripts/run_train_esmarappi_nscc.pbs`)
+3. **Focal loss ablation** — Implement focal loss ($\gamma=2$, $\alpha=0.25$) as an alternative to BCE
+4. **LoRA backbone fine-tuning** — Apply Low-Rank Adaptation ($r=8$, $\alpha=16$) to PPLM cross-attention layers
+5. **Joint training** — Merge DeepAraPPI C1 + ESMAraPPI C1 for a unified plant model
+6. **Auxiliary feature fusion** — GO terms, domain interactions (per `plant-pplm-methodology.md` §2.3)
