@@ -133,7 +133,7 @@ def main():
         state_dicts = []
         for rank, (auprc, ckpt_path) in enumerate(top_k):
             print(f"    #{rank + 1}: AUPRC={auprc:.4f} | {os.path.basename(ckpt_path)}")
-            checkpoint = torch.load(ckpt_path, map_location="cpu")
+            checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             state_dicts.append(checkpoint["model_state_dict"])
 
         ensemble_weights[mode] = state_dicts

@@ -56,7 +56,7 @@ def load_pplm_backbone(device):
         print("Run: cd PPLM/weights && bash download_weights.sh")
         sys.exit(1)
 
-    model_data = torch.load(model_path, map_location="cpu")
+    model_data = torch.load(model_path, map_location="cpu", weights_only=False)
     model_param = model_data["param"]
     model_state = model_data["model"]
 

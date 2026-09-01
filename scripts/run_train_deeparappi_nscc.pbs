@@ -83,7 +83,7 @@ python -u scripts/training/train_ppi_head.py \
     --n_folds 10 \
     --epochs 15 \
     --batch_size 512 \
-    --lr 5e-5 \
+    --learning_rate 5e-5 \
     --gpu_id 0
 
 echo -e "\n>>> [Stage 2] Training PPI head (max pooling, 10-fold CV) <<<"
@@ -94,7 +94,7 @@ python -u scripts/training/train_ppi_head.py \
     --n_folds 10 \
     --epochs 15 \
     --batch_size 512 \
-    --lr 5e-5 \
+    --learning_rate 5e-5 \
     --gpu_id 0
 
 # ==============================================================================

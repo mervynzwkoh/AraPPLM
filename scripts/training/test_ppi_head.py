@@ -54,7 +54,7 @@ def load_models(device, model_weights_path):
         print(f"ERROR: PPLM weights not found at {model_path}")
         sys.exit(1)
 
-    model_data = torch.load(model_path, map_location="cpu")
+    model_data = torch.load(model_path, map_location="cpu", weights_only=False)
     model_param = model_data["param"]
     model_state = model_data["model"]
 
@@ -71,7 +71,7 @@ def load_models(device, model_weights_path):
 
     # Load plant-trained PPI classifier weights
     print(f"Loading plant-trained PPI weights: {model_weights_path}")
-    ppi_weights = torch.load(model_weights_path, map_location=device)
+    ppi_weights = torch.load(model_weights_path, map_location=device, weights_only=False)
 
     ppi_model = PPI_inter_intra_attn_embed_single_pooling()
     ppi_model.to(device)
