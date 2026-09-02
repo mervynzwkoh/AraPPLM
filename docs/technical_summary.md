@@ -75,13 +75,17 @@ AraPPLM/
 │
 ├── docs/                               # Project documentation
 │   ├── technical_summary.md            # Architecture & progress tracker
-│   ├── ppi_head_retraining_methodology.md # Retraining technical methodology
 │   ├── data_processing_pipeline.md     # Data preparation documentation
 │   ├── plant-pplm-methodology.md       # Plant-PPLM methodology design
-│   ├── PPLM-PPI_pretraining_walkthrough.md # Retraining run instructions
-│   ├── benchmark_analysis_deeparappi_vs_pplm.md
-│   ├── benchmark_analysis_esmarappi_vs_pplm.md
-│   └── lit_review/                     # Literature review templates
+│   ├── lit_review/                     # Literature review templates
+│   ├── ppi_head_retraining/            # Head retraining documentation & results
+│   │   ├── ppi_head_retraining_methodology.md
+│   │   ├── ppi_head_retraining_walkthrough.md
+│   │   ├── benchmark_analysis_pretrained_pplm_deeparappi.md
+│   │   └── benchmark_analysis_pretrained_pplm_esmarappi.md
+│   └── zero_shot_benchmarking/         # Zero-shot benchmarking reports
+│       ├── benchmark_analysis_deeparappi_vs_pplm.md
+│       └── benchmark_analysis_esmarappi_vs_pplm.md
 │
 └── PPLM_NSCC_A100.yml                  # A100-optimized Conda environment
 ```
@@ -127,30 +131,27 @@ Across all **46,310 held-out test pairs** in the ESMAraPPI suite (with 40% seque
 
 ---
 
-### Phase 5: PPI Head Retraining (DeepAraPPI C1) — In Progress
+### Phase 5: PPI Head Retraining (Completed on Both Suites) ✓
 
-Retrained the PPLM-PPI MLP classifier head on the DeepAraPPI C1 training set (31,284 pairs) with frozen backbone. See [`ppi_head_retraining_methodology.md`](ppi_head_retraining_methodology.md) for full technical details.
+Retrained the PPLM-PPI MLP classifier head from random initialisation on plant C1 training sets with a frozen 650M PPLM backbone. See [`docs/ppi_head_retraining/ppi_head_retraining_methodology.md`](ppi_head_retraining/ppi_head_retraining_methodology.md) for full technical methodology.
 
-- [x] **Stage 1:** Feature extraction — PPLM backbone features extracted for all 31,284 C1 pairs
-- [x] **Stage 2:** MLP head training — 10-fold stratified CV × 2 pooling modes (mean, max)
-- [ ] **Stage 3:** Model selection — Package top-5 checkpoints per pooling mode
-- [ ] **Stage 4:** Test-set evaluation — C2, C3, Rice with plant-trained ensemble
-- [ ] **Stage 5:** Evaluation metrics — Compare against zero-shot baselines
+- [x] **DeepAraPPI C1 Training (31,284 pairs):** 10-fold CV (mean AUPRC 0.8965 / max 0.8954)
+  * C2 Held-Out (66,055 pairs): **0.8738 AUPRC** (vs. Zero-Shot 0.5738, +52.3%; DeepAraPPI: 0.8970)
+  * C3 Held-Out (33,099 pairs): **0.8118 AUPRC** (vs. Zero-Shot 0.5525, +46.9%; DeepAraPPI: 0.8250)
+  * Rice Transfer (6,721 pairs): **0.3555 AUPRC** (vs. Zero-Shot 0.4297; DeepAraPPI: 0.3050)
+  * Full Report: [`docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md`](ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md)
 
-#### Cross-Validation Results (DeepAraPPI C1, 10-fold)
-
-| Pooling Mode | Average AUPRC | Best Fold AUPRC | Improvement over Zero-Shot C2 |
-| :--- | :--- | :--- | :--- |
-| **Mean** | **0.8965** | 0.9055 (Fold 7) | +56.2% (from 0.5738) |
-| **Max** | **0.8954** | 0.9042 (Fold 1) | +56.0% (from 0.5738) |
+- [x] **ESMAraPPI C1 Training (38,709 pairs, 40% redundancy filtered):** 10-fold CV (mean AUPRC 0.8776 / max 0.8768)
+  * Task C2 (37,444 pairs): **0.8408 AUPRC** (vs. Zero-Shot 0.5092, +65.1%; **Beats ESMAraPPI: 0.8340**)
+  * Task C3 (8,866 pairs): **0.8103 AUPRC** (★ **New SOTA**; vs. Zero-Shot 0.5610, +44.4%; **Beats ESMAraPPI: 0.8100**, **Beats ARACoFusion: 0.8066**, **Beats DeepAraPPI: 0.7850**)
+  * Full Report: [`docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_esmarappi.md`](ppi_head_retraining/benchmark_analysis_pretrained_pplm_esmarappi.md)
 
 ---
 
 ## Next Steps
 
-1. **Complete DeepAraPPI evaluation** — Run Stages 3–5 to produce test-set metrics on C2/C3/Rice with plant-trained weights (`qsub scripts/run_resume_deeparappi_nscc.pbs`)
-2. **ESMAraPPI C1 training** — Run the full pipeline on ESMAraPPI C1 (38,709 pairs), evaluate on ESMAraPPI C2/C3 (`qsub scripts/run_train_esmarappi_nscc.pbs`)
-3. **Focal loss ablation** — Implement focal loss ($\gamma=2$, $\alpha=0.25$) as an alternative to BCE
-4. **LoRA backbone fine-tuning** — Apply Low-Rank Adaptation ($r=8$, $\alpha=16$) to PPLM cross-attention layers
-5. **Joint training** — Merge DeepAraPPI C1 + ESMAraPPI C1 for a unified plant model
-6. **Auxiliary feature fusion** — GO terms, domain interactions (per `plant-pplm-methodology.md` §2.3)
+1. **Focal loss ablation** — Implement focal loss ($\gamma=2$, $\alpha=0.25$) as an alternative to BCE to address 1:10 class imbalance.
+2. **Fine-tuning from human weights** — Test transfer learning by initialising from the human-trained checkpoint (`ppi_models.pkl`) rather than random weights.
+3. **LoRA backbone fine-tuning** — Apply Low-Rank Adaptation ($r=8$, $\alpha=16$) to PPLM cross-attention layers.
+4. **Joint plant model training** — Merge DeepAraPPI C1 + ESMAraPPI C1 (69,993 pairs) for a unified plant foundation classifier.
+5. **Auxiliary feature fusion** — GO terms and domain interaction priors (per `plant-pplm-methodology.md` §2.3).

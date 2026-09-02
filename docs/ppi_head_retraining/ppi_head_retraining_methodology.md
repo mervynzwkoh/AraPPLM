@@ -204,7 +204,9 @@ This is identical to the original PPLM-PPI inference protocol, ensuring a fair c
 Training results and test-set evaluation are documented separately:
 
 - **DeepAraPPI pretrained results:** [`benchmark_analysis_pretrained_pplm_deeparappi.md`](benchmark_analysis_pretrained_pplm_deeparappi.md)
-- **Zero-shot baseline results:** [`benchmark_analysis_deeparappi_vs_pplm.md`](benchmark_analysis_deeparappi_vs_pplm.md)
+- **ESMAraPPI pretrained results:** [`benchmark_analysis_pretrained_pplm_esmarappi.md`](benchmark_analysis_pretrained_pplm_esmarappi.md)
+- **Zero-shot baseline results (DeepAraPPI):** [`../zero_shot_benchmarking/benchmark_analysis_deeparappi_vs_pplm.md`](../zero_shot_benchmarking/benchmark_analysis_deeparappi_vs_pplm.md)
+- **Zero-shot baseline results (ESMAraPPI):** [`../zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md`](../zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md)
 
 ---
 

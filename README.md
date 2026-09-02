@@ -18,10 +18,9 @@ does plant-specific domain adaptation improve performance?
 - [x] Zero-shot benchmarking on DeepAraPPI C1/C2/C3 + Rice
 - [x] Zero-shot benchmarking on ESMAraPPI C2/C3
 - [x] Evaluation framework (AUPRC, AUROC, F1, MCC, Specificity)
-- [x] PPI head retraining pipeline (Stages 1–2 complete on DeepAraPPI C1)
-- [ ] PPI head test-set evaluation (Stages 3–5 pending)
-- [ ] ESMAraPPI C1 training
-- [ ] Domain-adaptive fine-tuning (LoRA)
+- [x] PPI head retraining on DeepAraPPI C1 & test-set evaluation (C2, C3, Rice)
+- [x] PPI head retraining on ESMAraPPI C1 & test-set evaluation (C2, C3)
+- [ ] Domain-adaptive fine-tuning (LoRA on backbone)
 - [ ] Focal loss / class-weighted loss ablation
 - [ ] Auxiliary feature fusion (GO terms, domain interactions)
 
@@ -29,23 +28,28 @@ does plant-specific domain adaptation improve performance?
 
 ### Zero-Shot Benchmarking (No Plant-Specific Training)
 
-| Task | Difficulty | PPLM (AUPRC) | Best Supervised Baseline |
-|------|-----------|--------------|--------------------------|
+| Task | Difficulty | PPLM Zero-Shot (AUPRC) | Best Supervised Baseline |
+|------|-----------|------------------------|--------------------------|
 | DeepAraPPI C2 | Medium (one unseen) | 0.5738 | DeepAraPPI: 0.8970 |
 | DeepAraPPI C3 | High (both unseen) | 0.5525 | DeepAraPPI: 0.8250 |
-| DeepAraPPI Rice | Cross-species | **0.4297** | DeepAraPPI: 0.3050 |
+| DeepAraPPI Rice | Cross-species | **0.4297** ★ | DeepAraPPI: 0.3050 |
 | ESMAraPPI C3 | High (both unseen) | **0.5610** | TAGPPI: 0.5540 |
 
-**Highlights:** New SOTA on Rice cross-species transfer; beats AlphaFold2-based TAGPPI on hard unseen proteins.
+**Highlights:** Zero-shot PPLM set a new SOTA on Rice cross-species transfer (0.4297) and beat AlphaFold2-based TAGPPI on hard unseen proteins without plant training.
 
-### PPI Head Retraining (DeepAraPPI C1, 10-fold CV)
+### Plant-Pretrained PPI Head (Frozen Backbone + Plant C1 MLP Retraining)
 
-| Pooling Mode | Avg Validation AUPRC |
-|-------------|---------------------|
-| Mean | **0.8965** |
-| Max | **0.8954** |
+| Benchmark Suite | Task / Partition | Difficulty | Zero-Shot AUPRC | Pretrained AUPRC | Best Published Baseline |
+|:---|:---|:---|:---:|:---:|:---:|
+| **DeepAraPPI** | Task 2 (C2) | Medium (1 Unseen) | 0.5738 | **0.8738** | DeepAraPPI: 0.8970 |
+| **DeepAraPPI** | Task 3 (C3) | High (Both Unseen) | 0.5525 | **0.8118** | DeepAraPPI: 0.8250 |
+| **DeepAraPPI** | Task 4 (Rice) | Cross-Species | **0.4297** | 0.3555 | ARACoFusion: 0.3519 |
+| **ESMAraPPI** | Task C2 | Medium (1 Unseen) | 0.5092 | **0.8408** | ESMAraPPI: 0.8340 |
+| **ESMAraPPI** | Task C3 | High (Both Unseen) | 0.5610 | **0.8103** ★ | ESMAraPPI: 0.8100 |
 
-Test-set evaluation (C2/C3/Rice) pending — see `docs/ppi_head_retraining_methodology.md`.
+**Highlights:**
+* **New SOTA on ESMAraPPI Task C3 (0.8103 AUPRC):** Surpasses the native ESMAraPPI model (0.8100), ARACoFusion (0.8066), and DeepAraPPI (0.7850).
+* **Near-Parity with DeepAraPPI on Sequence-Only Inputs:** 0.8738 on C2 and 0.8118 on C3 without requiring Gene Ontology or domain graph annotations.
 
 ## Quick Start
 
@@ -70,17 +74,18 @@ python scripts/data_preparation/build_sequence_db.py
 
 ### Run Benchmarking (Zero-Shot)
 ```bash
-# Submit PBS job on NSCC
+# Submit PBS jobs on NSCC
 qsub scripts/run_all_benchmarks_nscc.pbs
+qsub scripts/run_esmarappi_benchmarks_nscc.pbs
 ```
 
 ### Run PPI Head Retraining
 ```bash
-# Full pipeline: extract features → train → select → test → evaluate
+# End-to-end retraining on DeepAraPPI C1
 qsub scripts/run_train_deeparappi_nscc.pbs
 
-# Or resume from model selection if Stages 1–2 done
-qsub scripts/run_resume_deeparappi_nscc.pbs
+# End-to-end retraining on ESMAraPPI C1
+qsub scripts/run_train_esmarappi_nscc.pbs
 ```
 
 ## Project Structure
@@ -105,12 +110,16 @@ qsub scripts/run_resume_deeparappi_nscc.pbs
 | Document | Description |
 |----------|-------------|
 | [technical_summary.md](docs/technical_summary.md) | Architecture, benchmarking results & progress tracker |
-| [ppi_head_retraining_methodology.md](docs/ppi_head_retraining_methodology.md) | Retraining technical methodology, design decisions & CV results |
-| [PPLM-PPI_pretraining_walkthrough.md](docs/PPLM-PPI_pretraining_walkthrough.md) | Step-by-step run instructions for the training pipeline |
 | [data_processing_pipeline.md](docs/data_processing_pipeline.md) | Sequence retrieval & database construction |
 | [plant-pplm-methodology.md](docs/plant-pplm-methodology.md) | Proposed fine-tuning methodology (LoRA, focal loss) |
-| [benchmark_analysis_deeparappi_vs_pplm.md](docs/benchmark_analysis_deeparappi_vs_pplm.md) | DeepAraPPI benchmark analysis |
-| [benchmark_analysis_esmarappi_vs_pplm.md](docs/benchmark_analysis_esmarappi_vs_pplm.md) | ESMAraPPI benchmark analysis |
+| **Head Retraining** | |
+| [ppi_head_retraining_methodology.md](docs/ppi_head_retraining/ppi_head_retraining_methodology.md) | Retraining technical methodology, design decisions & training protocol |
+| [ppi_head_retraining_walkthrough.md](docs/ppi_head_retraining/ppi_head_retraining_walkthrough.md) | Step-by-step run instructions for HPC training |
+| [benchmark_analysis_pretrained_pplm_deeparappi.md](docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md) | DeepAraPPI pretrained results report (C2, C3, Rice) |
+| [benchmark_analysis_pretrained_pplm_esmarappi.md](docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_esmarappi.md) | ESMAraPPI pretrained results report (C2, C3) |
+| **Zero-Shot Benchmarking** | |
+| [benchmark_analysis_deeparappi_vs_pplm.md](docs/zero_shot_benchmarking/benchmark_analysis_deeparappi_vs_pplm.md) | DeepAraPPI zero-shot report |
+| [benchmark_analysis_esmarappi_vs_pplm.md](docs/zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md) | ESMAraPPI zero-shot report |
 
 ## References
 - PPLM: Liu, Chen & Zhang, Nature Communications 2026
