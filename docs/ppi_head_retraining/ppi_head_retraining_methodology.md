@@ -199,52 +199,12 @@ This is identical to the original PPLM-PPI inference protocol, ensuring a fair c
 
 ---
 
-## 6. Training Results (DeepAraPPI C1)
+## 6. Results
 
-### 6.1 Cross-Validation Performance
+Training results and test-set evaluation are documented separately:
 
-#### Mean Pooling (10-fold CV)
-
-| Fold | Best AUPRC | Best Epoch |
-|------|-----------|------------|
-| 0 | 0.8881 | 15 |
-| 1 | 0.9044 | 15 |
-| 2 | 0.8902 | 15 |
-| 3 | 0.8975 | 15 |
-| 4 | 0.9028 | 15 |
-| 5 | 0.8910 | 15 |
-| 6 | 0.8960 | 14 |
-| 7 | **0.9055** | 14 |
-| 8 | 0.8914 | 15 |
-| 9 | 0.8980 | 13 |
-| **Average** | **0.8965** | — |
-
-#### Max Pooling (10-fold CV)
-
-| Fold | Best AUPRC | Best Epoch |
-|------|-----------|------------|
-| 0 | 0.8919 | 15 |
-| 1 | **0.9042** | 15 |
-| 2 | 0.8905 | 15 |
-| 3 | 0.9020 | 15 |
-| 4 | 0.9023 | 15 |
-| 5 | 0.8733 | 15 |
-| 6 | 0.8911 | 15 |
-| 7 | 0.8999 | 15 |
-| 8 | 0.9017 | 15 |
-| 9 | 0.8969 | 13 |
-| **Average** | **0.8954** | — |
-
-### 6.2 Observations
-
-1. **Consistent convergence**: All 20 training runs converged within 15 epochs, with most best checkpoints at epochs 13–15, indicating stable training without overfitting
-2. **Mean ≈ Max**: Mean pooling (0.8965) and max pooling (0.8954) perform nearly identically, consistent with the original PPLM paper's findings
-3. **High validation AUPRC**: The ~0.896 mean CV AUPRC on the 1:10 imbalanced C1 data is very strong, suggesting the PPLM backbone's features are well-suited for plant PPI classification once given appropriate supervision
-4. **Comparison to zero-shot**: The CV AUPRC of 0.896 on C1 (which contains seen proteins) far exceeds the zero-shot AUPRC of 0.574 on C2 (partially seen), confirming that supervision dramatically improves performance on seen/semi-seen protein domains
-
-### 6.3 Test-Set Evaluation
-
-> **Status**: Stages 3–5 (model selection, test-set prediction, evaluation) are pending execution. The resume PBS script (`scripts/run_resume_deeparappi_nscc.pbs`) has been prepared for this.
+- **DeepAraPPI pretrained results:** [`benchmark_analysis_pretrained_pplm_deeparappi.md`](benchmark_analysis_pretrained_pplm_deeparappi.md)
+- **Zero-shot baseline results:** [`benchmark_analysis_deeparappi_vs_pplm.md`](benchmark_analysis_deeparappi_vs_pplm.md)
 
 ---
 

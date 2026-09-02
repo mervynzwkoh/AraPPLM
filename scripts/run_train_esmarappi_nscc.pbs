@@ -53,7 +53,7 @@ python -c "import torch; print('CUDA available:', torch.cuda.is_available(), '| 
 # ==============================================================================
 # Configuration
 # ==============================================================================
-C1_DATASET="data/ESMAraPPI/c1_Train.txt"
+C1_DATASET="data/ESMAraPPI/c1Train.txt"
 SEQ_DB="data/arabidopsis/uniprot_final.pkl"
 FEAT_DIR="features/ESMAraPPI_C1"
 MODEL_DIR="models/ESMAraPPI"

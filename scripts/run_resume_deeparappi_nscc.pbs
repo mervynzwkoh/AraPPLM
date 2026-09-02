@@ -1,0 +1,99 @@
+#!/bin/bash
+# ==============================================================================
+# PBS Job Script: Resume DeepAraPPI Training from Stage 3
+# Stages 1 (feature extraction) and 2 (MLP training) already completed.
+# This script runs Stages 3–5: model selection, testing, evaluation.
+# ==============================================================================
+#PBS -N pplm_deeparappi_resume
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64GB
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -o pplm_deeparappi_resume.log
+
+# Navigate to project root
+if [ -d "$PBS_O_WORKDIR/scripts" ]; then
+    cd "$PBS_O_WORKDIR"
+elif [ -d "$HOME/AraPPLM/scripts" ]; then
+    cd "$HOME/AraPPLM"
+elif [ -d "$HOME/AIS5281-Plant-PPLM/scripts" ]; then
+    cd "$HOME/AIS5281-Plant-PPLM"
+fi
+
+echo "=== Resume Pipeline (Stages 3-5) started on $(hostname) at $(date) ==="
+echo "Working directory: $(pwd)"
+nvidia-smi
+
+# Load conda
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+fi
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+conda activate PPLM_NSCC_A100
+
+echo "Python binary: $(which python)"
+python -c "import torch; print('CUDA available:', torch.cuda.is_available(), '| GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+
+# Configuration
+SEQ_DB="data/arabidopsis/uniprot_final.pkl"
+RICE_SEQ_DB="data/rice/uniprot_rice_final.pkl"
+MODEL_DIR="models/DeepAraPPI"
+RESULT_DIR="results/DeepAraPPI"
+ENSEMBLE_WEIGHTS="models/DeepAraPPI/ppi_plant_models.pkl"
+
+mkdir -p "$RESULT_DIR"
+
+# ==============================================================================
+# Stage 3: Select Top-5 Models per Pooling Mode
+# ==============================================================================
+echo -e "\n>>> [Stage 3] Selecting top-5 models per pooling mode <<<"
+python -u scripts/training/select_top_models.py \
+    --model_dir "$MODEL_DIR" \
+    --output "$ENSEMBLE_WEIGHTS" \
+    --top_k 5 \
+    --modes mean max
+
+# ==============================================================================
+# Stage 4: Evaluate on Held-Out Test Sets
+# ==============================================================================
+echo -e "\n>>> [Stage 4a] Testing on DeepAraPPI C2 (One Unseen Protein) <<<"
+python -u scripts/training/test_ppi_head.py \
+    --input data/DeepAraPPI/c2_ppi_sample_DeepAraPPI.txt \
+    --output "$RESULT_DIR/deepara_c2_plant_scores.csv" \
+    --model_weights "$ENSEMBLE_WEIGHTS" \
+    --seq_db "$SEQ_DB" \
+    --gpu_id 0
+
+echo -e "\n>>> [Stage 4b] Testing on DeepAraPPI C3 (Both Unseen Proteins) <<<"
+python -u scripts/training/test_ppi_head.py \
+    --input data/DeepAraPPI/c3_ppi_sample_DeepAraPPI.txt \
+    --output "$RESULT_DIR/deepara_c3_plant_scores.csv" \
+    --model_weights "$ENSEMBLE_WEIGHTS" \
+    --seq_db "$SEQ_DB" \
+    --gpu_id 0
+
+if [ -f "$RICE_SEQ_DB" ]; then
+    echo -e "\n>>> [Stage 4c] Testing on Rice Cross-Species <<<"
+    python -u scripts/training/test_ppi_head.py \
+        --input data/DeepAraPPI/all_rice_positive_negative_DeepAraPPI.txt \
+        --output "$RESULT_DIR/deepara_rice_plant_scores.csv" \
+        --model_weights "$ENSEMBLE_WEIGHTS" \
+        --seq_db "$RICE_SEQ_DB" \
+        --gpu_id 0
+fi
+
+# ==============================================================================
+# Stage 5: Evaluate & Compare Against Baselines
+# ==============================================================================
+echo -e "\n>>> [Stage 5] Running evaluation metrics <<<"
+python -u scripts/benchmarking/evaluate_pplm.py \
+    --c2 "$RESULT_DIR/deepara_c2_plant_scores.csv" \
+    --c3 "$RESULT_DIR/deepara_c3_plant_scores.csv" \
+    --rice "$RESULT_DIR/deepara_rice_plant_scores.csv" \
+    --output_dir "$RESULT_DIR"
+
+echo "=== Resume Pipeline Complete at $(date) ==="

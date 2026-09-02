@@ -189,7 +189,7 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
         print("-" * 70)
         benchmark_suite = "ESMARAPPI" if "ESM" in task_name else "DEEPARAPPI"
         print(f"COMPARISON WITH {benchmark_suite} BENCHMARKS (AUPRC):")
-        print(f"  PPLM (Zero-Shot):           {metrics['AUPRC']:.4f}")
+        print(f"  PPLM:                       {metrics['AUPRC']:.4f}")
         for model_k, val in b.items():
             if model_k != "Description":
                 print(f"  {model_k:<27} {val:.4f}")
