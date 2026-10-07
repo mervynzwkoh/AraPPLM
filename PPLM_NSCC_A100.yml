@@ -17,3 +17,6 @@ dependencies:
       - torchvision
       - torchaudio
       - fair-esm>=2.0.0
+      - umap-learn
+      - matplotlib
+      - seaborn

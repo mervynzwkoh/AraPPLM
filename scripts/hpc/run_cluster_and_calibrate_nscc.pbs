@@ -1,0 +1,74 @@
+#!/bin/bash
+# ==============================================================================
+# PBS Job Script: Phase 2 Dimensionality Reduction & Threshold Calibration on NSCC
+# ==============================================================================
+#PBS -N ara_cluster_and_calibrate
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=16:mem=64GB
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o ara_cluster_and_calibrate.log
+
+# ------------------------------------------------------------------------------
+# 1. Working Directory
+# ------------------------------------------------------------------------------
+cd $PBS_O_WORKDIR || exit 1
+echo "=== Phase 2 Job started on $(hostname) at $(date) ==="
+echo "Working directory: $(pwd)"
+
+# ------------------------------------------------------------------------------
+# 2. Activate Conda Environment
+# ------------------------------------------------------------------------------
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+else
+    module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null
+fi
+
+conda activate PPLM_NSCC_A100
+
+echo "Python binary: $(which python)"
+
+# Ensure visualization and dimensionality reduction packages are present
+pip install --quiet umap-learn matplotlib seaborn
+
+# ------------------------------------------------------------------------------
+# 3. Step 1: PCA, HDBSCAN, K-Means & UMAP Projection
+# ------------------------------------------------------------------------------
+EMBEDDINGS="data/processed/arabidopsis/ara_positive_embeddings_2560d.npy"
+METADATA="data/processed/arabidopsis/ara_positive_embeddings_meta.parquet"
+CLUSTERED_OUT="data/processed/arabidopsis/ara_embeddings_clustered.parquet"
+PCA_OUT="data/processed/arabidopsis/ara_embeddings_pca50.npy"
+
+if [ ! -f "$EMBEDDINGS" ]; then
+    echo "ERROR: Embeddings file not found: $EMBEDDINGS. Run Phase 1 extraction first."
+    exit 1
+fi
+
+echo "--- Step 1: Clustering Embeddings ---"
+python scripts/data_preparation/cluster_pair_embeddings.py \
+    --embeddings "$EMBEDDINGS" \
+    --meta "$METADATA" \
+    --pca_output "$PCA_OUT" \
+    --output "$CLUSTERED_OUT" \
+    --pca_components 50 \
+    --kmeans_k 15 \
+    --hdbscan_min_cluster_size 50 \
+    --n_neighbors 30 \
+    --min_dist 0.1
+
+# ------------------------------------------------------------------------------
+# 4. Step 2: Quality Enrichment & Plant Threshold Derivation
+# ------------------------------------------------------------------------------
+echo "--- Step 2: Quality Enrichment & Plant Threshold Derivation ---"
+python scripts/data_preparation/calibrate_plant_thresholds.py \
+    --input "$CLUSTERED_OUT" \
+    --output_dir data/processed/arabidopsis \
+    --figures_dir results/figures
+
+echo "=== Phase 2 Job finished successfully at $(date) ==="
