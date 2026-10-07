@@ -8,14 +8,14 @@ Built a complete pipeline to retrain the PPLM-PPI classifier MLP head on plant *
 
 | # | File | Purpose |
 |---|------|---------|
-| 1 | [extract_features.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/extract_features.py) | Stage 1: Extract PPLM backbone features for C1 training pairs → `.pkl` files |
-| 2 | [ppi_model.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/ppi_model.py) | PPI classifier architecture (identical to original PPLM) + extended metrics |
-| 3 | [dataset.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/dataset.py) | PyTorch Dataset for loading pre-extracted `.pkl` features |
-| 4 | [train_ppi_head.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/train_ppi_head.py) | Stage 2: K-fold stratified CV training of the MLP head |
-| 5 | [select_top_models.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/select_top_models.py) | Stage 3: Rank checkpoints by validation AUPRC, package top-5 into ensemble |
-| 6 | [test_ppi_head.py](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/training/test_ppi_head.py) | Stage 4: Full inference (PPLM backbone + plant-trained head) on test sets |
-| 7 | [run_train_deeparappi_nscc.pbs](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/run_train_deeparappi_nscc.pbs) | PBS: End-to-end DeepAraPPI C1 training → C2/C3/Rice evaluation |
-| 8 | [run_train_esmarappi_nscc.pbs](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/run_train_esmarappi_nscc.pbs) | PBS: End-to-end ESMAraPPI C1 training → C2/C3 evaluation |
+| 1 | [extract_features.py](../../scripts/training/extract_features.py) | Stage 1: Extract PPLM backbone features for C1 training pairs → `.pkl` files |
+| 2 | [ppi_model.py](../../scripts/training/ppi_model.py) | PPI classifier architecture (identical to original PPLM) + extended metrics |
+| 3 | [dataset.py](../../scripts/training/dataset.py) | PyTorch Dataset for loading pre-extracted `.pkl` features |
+| 4 | [train_ppi_head.py](../../scripts/training/train_ppi_head.py) | Stage 2: K-fold stratified CV training of the MLP head |
+| 5 | [select_top_models.py](../../scripts/training/select_top_models.py) | Stage 3: Rank checkpoints by validation AUPRC, package top-5 into ensemble |
+| 6 | [test_ppi_head.py](../../scripts/training/test_ppi_head.py) | Stage 4: Full inference (PPLM backbone + plant-trained head) on test sets |
+| 7 | [run_train_deeparappi_nscc.pbs](../../scripts/hpc/run_train_deeparappi_nscc.pbs) | PBS: End-to-end DeepAraPPI C1 training → C2/C3/Rice evaluation |
+| 8 | [run_train_esmarappi_nscc.pbs](../../scripts/hpc/run_train_esmarappi_nscc.pbs) | PBS: End-to-end ESMAraPPI C1 training → C2/C3 evaluation |
 
 ### Repository reorganisation
 
@@ -55,7 +55,7 @@ Built a complete pipeline to retrain the PPLM-PPI classifier MLP head on plant *
 
 ## 2. How the Original PPLM-PPI Training Works
 
-The original PPLM-PPI training pipeline operates in **two completely decoupled stages**, matching the codebase in [`ppi_training_code/`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/ppi_training_code):
+The original PPLM-PPI training pipeline operates in **two completely decoupled stages**, matching the codebase in [`PPLM/`](../../PPLM/):
 
 ### Stage 1: Offline Feature Extraction (Frozen PPLM Backbone)
 
@@ -244,7 +244,7 @@ Architecture-identical to the original PPLM `PPLM_PPI` class with an extended `e
    ```bash
    cd PPLM/weights && bash download_weights.sh && cd ../..
    ```
-2. **Sequence databases** must be built (see [data_processing_pipeline.md](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/data_processing_pipeline.md)):
+2. **Sequence databases** must be built (see [data_processing_pipeline.md](../../docs/data_processing_pipeline.md)):
    - `data/arabidopsis/uniprot_final.pkl` (109,994 entries)
    - `data/rice/uniprot_rice_final.pkl` (100,297 entries)
 3. **Conda environment** must be set up:
@@ -260,7 +260,7 @@ Submit the end-to-end PBS job to run all 5 stages automatically:
 ```bash
 # Train on DeepAraPPI C1 → evaluate on C2/C3/Rice
 cd AraPPLM
-qsub scripts/run_train_deeparappi_nscc.pbs
+qsub scripts/hpc/run_train_deeparappi_nscc.pbs
 
 # Monitor progress
 tail -f pplm_train_deeparappi.log
@@ -269,7 +269,7 @@ tail -f pplm_train_deeparappi.log
 For ESMAraPPI (after placing the C1 training file):
 ```bash
 # Requires: data/ESMAraPPI/c1_ppi_sample_ESMAraPPI.txt
-qsub scripts/run_train_esmarappi_nscc.pbs
+qsub scripts/hpc/run_train_esmarappi_nscc.pbs
 tail -f pplm_train_esmarappi.log
 ```
 
@@ -389,16 +389,24 @@ The purpose of this retraining is to compare plant-trained PPLM-PPI against the 
 
 | Task | Zero-Shot PPLM (AUPRC) | Plant-Trained PPLM (AUPRC) | DeepAraPPI Baseline |
 |------|----------------------|---------------------------|---------------------|
-| C2 (One Unseen) | 0.5738 | *TBD — run training* | 0.8970 |
-| C3 (Both Unseen) | 0.5525 | *TBD — run training* | 0.8250 |
-| Rice (Cross-Species) | 0.4297 | *TBD — run training* | 0.3050 |
+| C2 (One Unseen) | 0.5738 | **0.8738** | 0.8970 |
+| C3 (Both Unseen) | 0.5525 | **0.8118** | 0.8250 |
+| Rice (Cross-Species) | 0.4297 | **0.3555** | 0.3050 |
 
 > [!NOTE]
-> The key hypothesis: retraining the MLP head on Arabidopsis C1 data (while keeping the PPLM backbone frozen) should significantly improve C2 performance (where one protein was seen during training), while C3 performance (both proteins unseen) depends primarily on the quality of the backbone's learned representations. The Rice cross-species transfer is the most informative signal about whether plant-specific training helps generalization.
+> The empirical results confirm the retraining hypothesis: retraining the MLP head on Arabidopsis C1 data (while keeping the PPLM backbone frozen) dramatically closes the gap on Arabidopsis test sets (C2: $0.5738 \rightarrow 0.8738$, +52.3%; C3: $0.5525 \rightarrow 0.8118$, +46.9%), approaching the fully supervised DeepAraPPI baseline.
+> However, on Rice cross-species transfer, plant-retrained performance dropped from $0.4297$ to $0.3555$ (-17.3%), showing that Arabidopsis-specific classifier tuning overfits to dicot training statistics when evaluated against Rice.
 
 ---
 
-## 8. Reminder: ESMAraPPI C1 Data
+## 8. ESMAraPPI C1 Retraining Status
 
-> [!WARNING]
-> The ESMAraPPI C1 training file (`data/ESMAraPPI/c1_ppi_sample_ESMAraPPI.txt`) is **not yet in the repository**. You need to obtain it from the [ESMAraPPI paper supplementary data](https://doi.org/10.1186/s13007-023-01119-6) or its GitHub repository, and place it at that path in TSV format (`Protein1\tProtein2\tlabel`). The ESMAraPPI PBS script will verify this file exists before proceeding.
+The ESMAraPPI C1 training dataset is integrated at `data/ESMAraPPI/c1Train.txt` (38,709 pairs; 3,519 positive, 35,190 negative). Retraining on ESMAraPPI C1 has been completed with the following performance benchmarks:
+
+| Evaluation Set | Zero-Shot PPLM (AUPRC) | Plant-Trained PPLM (AUPRC) | ESMAraPPI Baseline |
+| :--- | :--- | :--- | :--- |
+| **Test 1 (`c2Pred.txt` - Homology/Random)** | 0.5092 | **0.8408** | 0.8526 |
+| **Test 2 (`c3Pred.txt` - Strict $\le 40\%$ Non-redundant)** | 0.5610 | **0.8103** | 0.8174 |
+
+> [!TIP]
+> Both DeepAraPPI and ESMAraPPI retraining runs validate that the PPLM backbone representations are highly expressive for plant PPIs, requiring only lightweight plant-specific adapter/head tuning to match published dedicated models on within-species evaluation. Detailed analyses are documented in [docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md](benchmark_analysis_pretrained_pplm_deeparappi.md) and [docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_esmarappi.md](benchmark_analysis_pretrained_pplm_esmarappi.md).

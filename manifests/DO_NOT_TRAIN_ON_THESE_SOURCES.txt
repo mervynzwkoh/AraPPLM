@@ -1,0 +1,22 @@
+# RESTRICTED BENCHMARK HOLDOUTS — STRICTLY DO NOT TRAIN ON THESE SOURCES
+# Generated UTC: 2026-09-21T03:37:50.450201+00:00
+
+## 1. External Zero-Shot Evaluation Species (Maize, Tomato, Soybean)
+# Under no circumstances should any interaction from these sources be used for
+# model training, representation pretraining fine-tuning, hyperparameter selection, or threshold tuning.
+HOLDOUT_EXTERNAL	SRC_C1_BIOGRID_MAIZE	Zea mays	data/raw/external_holdout/maize/BIOGRID-ORGANISM-Zea_mays-5.0.261.tab3.txt
+HOLDOUT_EXTERNAL	SRC_C2_BIOGRID_TOMATO	Solanum lycopersicum	data/raw/external_holdout/tomato/BIOGRID-ORGANISM-Solanum_lycopersicum-5.0.261.tab3.txt
+HOLDOUT_EXTERNAL	SRC_C3_BIOGRID_SOYBEAN	Glycine max	data/raw/external_holdout/soybean/BIOGRID-ORGANISM-Glycine_max-5.0.261.tab3.txt
+HOLDOUT_EXTERNAL	SRC_C1_INTACT_MAIZE	Zea mays	data/raw/external_holdout/maize/intact_maize_taxid4577_release252.mitab27.txt
+HOLDOUT_EXTERNAL	SRC_C1_STRING_MAIZE_PHYSICAL	Zea mays	data/raw/external_holdout/maize/4577.protein.physical.links.detailed.v12.0.txt.gz
+HOLDOUT_EXTERNAL	SRC_C2_INTACT_TOMATO	Solanum lycopersicum	data/raw/external_holdout/tomato/intact_tomato_taxid4081_release252.mitab27.txt
+HOLDOUT_EXTERNAL	SRC_C2_STRING_TOMATO_PHYSICAL	Solanum lycopersicum	data/raw/external_holdout/tomato/4081.protein.physical.links.detailed.v12.0.txt.gz
+HOLDOUT_EXTERNAL	SRC_C3_INTACT_SOYBEAN	Glycine max	data/raw/external_holdout/soybean/intact_soybean_taxid3847_release252.mitab27.txt
+HOLDOUT_EXTERNAL	SRC_C3_STRING_SOYBEAN_PHYSICAL	Glycine max	data/raw/external_holdout/soybean/3847.protein.physical.links.detailed.v12.0.txt.gz
+
+## 2. Prospective Temporal Holdout (2026 PhoX XL-MS Dataset)
+# Novel inter-protein cross-links from this dataset postdate pretraining cutoffs and must be reserved
+# for prospective temporal evaluation.
+HOLDOUT_TEMPORAL	SRC_A4_XLMS_2026_PLINK_SEARCH	Arabidopsis thaliana	data/raw/arabidopsis/xlms_2026/Total_XL_plink3-2_v3.csv
+HOLDOUT_TEMPORAL	SRC_A4_XLMS_2026_METADATA_LYSATE	Arabidopsis thaliana	data/raw/arabidopsis/xlms_2026/Cell_lysateXL_File_description.csv
+HOLDOUT_TEMPORAL	SRC_A4_XLMS_2026_METADATA_CHLOROPLAST	Arabidopsis thaliana	data/raw/arabidopsis/xlms_2026/ChloroplastXL_File_description_v2.csv

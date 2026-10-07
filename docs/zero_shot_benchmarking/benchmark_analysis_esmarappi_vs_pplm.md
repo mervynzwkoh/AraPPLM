@@ -247,12 +247,12 @@ To surpass supervised models (ARACoFusion and ESMAraPPI) on in-domain tasks whil
 
 ## 7. Artifact & File References
 
-* **Consolidated Summary:** [`results/ESMAraPPI/benchmark_summary.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/ESMAraPPI/benchmark_summary.csv)
-* **Task C2 Predictions:** [`results/ESMAraPPI/esmarappi_c2_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/ESMAraPPI/esmarappi_c2_scores.csv)
-* **Task C3 Predictions:** [`results/ESMAraPPI/esmarappi_c3_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/ESMAraPPI/esmarappi_c3_scores.csv)
-* **Task C2 Metrics Summary:** [`results/ESMAraPPI/esm_c2_metrics.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/ESMAraPPI/esm_c2_metrics.txt)
-* **Task C3 Metrics Summary:** [`results/ESMAraPPI/esm_c3_metrics.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/ESMAraPPI/esm_c3_metrics.txt)
-* **Evaluation Script:** [`scripts/evaluate_pplm.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/scripts/evaluate_pplm.py)
-* **ESMAraPPI Literature Review:** [`docs/lit_review/LitReview_ESMAraPPI.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_ESMAraPPI.md)
-* **ARACoFusion Literature Review:** [`docs/lit_review/LitReview_AraCoFusion.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_AraCoFusion.md)
-* **DeepAraPPI Literature Review:** [`docs/lit_review/LitReview_DeepAraPPI.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_DeepAraPPI.md)
+* **Consolidated Summary:** [`results/ESMAraPPI/zero-shot/benchmark_summary.csv`](../../results/ESMAraPPI/zero-shot/benchmark_summary.csv)
+* **Task C2 Predictions:** [`results/ESMAraPPI/zero-shot/esmarappi_c2_scores.csv`](../../results/ESMAraPPI/zero-shot/esmarappi_c2_scores.csv)
+* **Task C3 Predictions:** [`results/ESMAraPPI/zero-shot/esmarappi_c3_scores.csv`](../../results/ESMAraPPI/zero-shot/esmarappi_c3_scores.csv)
+* **Task C2 Metrics Summary:** [`results/ESMAraPPI/zero-shot/esm_c2_metrics.txt`](../../results/ESMAraPPI/zero-shot/esm_c2_metrics.txt)
+* **Task C3 Metrics Summary:** [`results/ESMAraPPI/zero-shot/esm_c3_metrics.txt`](../../results/ESMAraPPI/zero-shot/esm_c3_metrics.txt)
+* **Evaluation Script:** [`scripts/benchmarking/evaluate_pplm.py`](../../scripts/benchmarking/evaluate_pplm.py)
+* **ESMAraPPI Literature Review:** [`docs/lit_review/LitReview_ESMAraPPI.md`](../../docs/lit_review/LitReview_ESMAraPPI.md)
+* **ARACoFusion Literature Review:** [`docs/lit_review/LitReview_AraCoFusion.md`](../../docs/lit_review/LitReview_AraCoFusion.md)
+* **DeepAraPPI Literature Review:** [`docs/lit_review/LitReview_DeepAraPPI.md`](../../docs/lit_review/LitReview_DeepAraPPI.md)

@@ -70,16 +70,16 @@ The primary objective of this data processing pipeline is to construct fast, ind
 * **The Problem:**
   The initial *Oryza sativa subsp. japonica* proteome download (Taxonomy: `39947`) missed **10.15% of pairs (682 pairs across 163 unique protein IDs)** in the Rice benchmark because DeepAraPPI contains interactions across multiple rice cultivars and subspecies (including *indica* `39946` and general *Oryza sativa* `4530`).
 * **The Solution (UniParc Cross-Species Rescue):**
-  1. [`scripts/data_preparation/verify_coverage.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/scripts/data_preparation/verify_coverage.py) extracted the 163 missing accessions to `data/rice/missing_rice_ids.txt`.
+  1. [`scripts/data_preparation/verify_coverage.py`](../scripts/data_preparation/verify_coverage.py) extracted the 163 missing accessions to `data/rice/missing_rice_ids.txt`.
   2. Retrieved matching UniParc sequences into `data/rice/missing_rice.fasta`.
-  3. Merged into `data/rice/uniprot_rice_final.pkl` using [`scripts/data_preparation/merge_rice_uniparc.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/scripts/data_preparation/merge_rice_uniparc.py).
+  3. Merged into `data/rice/uniprot_rice_final.pkl` using [`scripts/data_preparation/merge_rice_uniparc.py`](../scripts/data_preparation/merge_rice_uniparc.py).
 * **Result:** **100.00% coverage (6,721 / 6,721 pairs).**
 
 ---
 
 ### Challenge 4: ESMAraPPI Secondary Accession Resolution (`sec_acc`)
 * **The Problem:**
-  When querying `data/arabidopsis/uniprot_final.pkl` against the ESMAraPPI benchmark datasets ([`c2Pred.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/data/ESMAraPPI/c2Pred.txt) and [`c3Pred.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/data/ESMAraPPI/c3Pred.txt)), **7 unique protein IDs** (`P25069`, `P25854`, `P29512`, `P59263`, `Q9FDW0`, `Q9LUF3`, `Q9ZNT9`) failed to resolve directly because they were historical secondary accessions merged into newer primary entries in UniProtKB.
+  When querying `data/arabidopsis/uniprot_final.pkl` against the ESMAraPPI benchmark datasets ([`c2Pred.txt`](../data/ESMAraPPI/c2Pred.txt) and [`c3Pred.txt`](../data/ESMAraPPI/c3Pred.txt)), **7 unique protein IDs** (`P25069`, `P25854`, `P29512`, `P59263`, `Q9FDW0`, `Q9LUF3`, `Q9ZNT9`) failed to resolve directly because they were historical secondary accessions merged into newer primary entries in UniProtKB.
 * **The Solution (Secondary Accession Mapping via REST API):**
   Queried the UniProtKB search API using the secondary accession operator (`https://rest.uniprot.org/uniprotkb/search?query=sec_acc:{acc}`) to map each ID to its active primary sequence:
   * `P25069` $\rightarrow$ `P0DH97` (Calmodulin-2, 149 aa)
@@ -138,7 +138,7 @@ The primary objective of this data processing pipeline is to construct fast, ind
 
 ## 5. HPC Optimization & Model Execution Design Decisions
 
-To evaluate PPLM (a 33-layer, 650M Transformer) across large plant interactomes (~106k held-out DeepAraPPI pairs + ~46k ESMAraPPI pairs) within the physical constraints of the NSCC Aspire 2A A100 GPU (40GB VRAM) and PBS walltime limits, the following engineering design decisions are implemented across [`scripts/batch_predict.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/scripts/batch_predict.py) and PBS batch scripts:
+To evaluate PPLM (a 33-layer, 650M Transformer) across large plant interactomes (~106k held-out DeepAraPPI pairs + ~46k ESMAraPPI pairs) within the physical constraints of the NSCC Aspire 2A A100 GPU (40GB VRAM) and PBS walltime limits, the following engineering design decisions are implemented across [`scripts/benchmarking/batch_predict.py`](../scripts/benchmarking/batch_predict.py) and PBS batch scripts:
 
 ### Decision 1: Combined Sequence Pair Length Cropping ($L_A + L_B \le 1020$)
 * **The Problem:** 
@@ -216,7 +216,7 @@ To evaluate PPLM (a 33-layer, 650M Transformer) across large plant interactomes 
 * **The Problem:** 
   PBS Pro and Python default to block-buffering stdout when output is redirected to a log file. Users could not see live progress via `tail -f *.log`.
 * **The Solution:**
-  Added the unbuffered flag `-u` to all Python executions in the PBS scripts (`python -u scripts/batch_predict.py ...`), enabling real-time streaming of pairs-per-second progress.
+  Added the unbuffered flag `-u` to all Python executions in the PBS scripts (`python -u scripts/benchmarking/batch_predict.py ...`), enabling real-time streaming of pairs-per-second progress.
 
 ---
 
@@ -283,10 +283,10 @@ python scripts/data_preparation/verify_coverage.py \
 
 ```bash
 # 1. Submit DeepAraPPI Benchmark Suite (Tasks 1, 2, 3, and Rice)
-qsub scripts/run_all_benchmarks_nscc.pbs
+qsub scripts/hpc/run_all_benchmarks_nscc.pbs
 
 # 2. Submit ESMAraPPI Benchmark Suite (Tasks C2 and C3)
-qsub scripts/run_esmarappi_benchmarks_nscc.pbs
+qsub scripts/hpc/run_esmarappi_benchmarks_nscc.pbs
 
 # 3. Monitor live execution
 tail -f pplm_esmarappi_benchmarks.log

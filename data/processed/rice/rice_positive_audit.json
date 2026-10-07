@@ -1,0 +1,71 @@
+{
+  "timestamp_utc": "2026-10-06T07:49:36.480517+00:00",
+  "species": "Oryza sativa (Rice)",
+  "provenance_standard": "Database-Only Provenance (Internal Guidelines / Holdout Flags Stripped)",
+  "filtering_rules": {
+    "IntAct": "Retain interaction_semantics == 'physical_association'",
+    "BioGRID": "Exclude proximity and genetic interactions",
+    "STRING": "Retain direct experiments > 0 (excluding transferred interologs where experiments == 0)"
+  },
+  "evidence_table_columns_count": 41,
+  "dedup_table_columns_count": 22,
+  "filtering_reconciliation": {
+    "intact_raw_records": 1027,
+    "intact_positive_retained": 1027,
+    "biogrid_raw_records": 366,
+    "biogrid_positive_retained": 352,
+    "biogrid_excluded": 14,
+    "string_raw_physical_records": 1294058,
+    "string_positive_retained": 862,
+    "string_excluded_transferred_interologs": 1074164,
+    "string_excluded_neither_experimental": 219032,
+    "total_positive_evidence_records": 2241
+  },
+  "deduplicated_pairs_summary": {
+    "total_unique_pairs": 998,
+    "heteromeric_pairs": 982,
+    "homomeric_pairs": 16,
+    "pure_protein_protein_pairs": 667,
+    "nucleic_acid_associated_pairs": 331,
+    "unique_proteins_all": 892,
+    "unique_proteins_pure_protein_pairs": 609,
+    "evidence_count_distribution": {
+      "1": 206,
+      "2": 438,
+      "3": 301,
+      "4": 33,
+      "5": 6,
+      "6": 9,
+      "7": 4,
+      "12": 1
+    }
+  },
+  "literature_provenance": {
+    "total_unique_pmids": 37,
+    "intact_pmids_count": 14,
+    "biogrid_pmids_count": 22,
+    "string_pmids_count": 1,
+    "unique_authors_count": 37
+  },
+  "output_files": {
+    "evidence_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_evidence.tsv",
+    "evidence_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_evidence.parquet",
+    "dedup_pairs_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_pairs_deduplicated.tsv",
+    "dedup_pairs_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_pairs_deduplicated.parquet",
+    "pair_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_hippie_provenance.tsv",
+    "pair_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_hippie_provenance.parquet",
+    "evidence_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_evidence_hippie_provenance.tsv",
+    "evidence_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\rice\\rice_positive_evidence_hippie_provenance.parquet"
+  },
+  "hippie_scoring_summary": {
+    "total_pairs": 998,
+    "high_confidence_count": 381,
+    "medium_confidence_count": 617,
+    "low_confidence_count": 0,
+    "mean_score": 0.7544,
+    "median_score": 0.7191,
+    "min_score": 0.6293,
+    "max_score": 0.9579,
+    "iqr": 0.1405
+  }
+}

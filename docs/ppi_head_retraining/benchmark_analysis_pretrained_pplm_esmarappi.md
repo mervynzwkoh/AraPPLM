@@ -304,12 +304,12 @@ Task C3 Recall ($\tau = 0.5$)       58.66%                                     6
 
 ## 7. Artifact & File References
 
-* **Consolidated Benchmark Summary:** [`results/ESMAraPPI/pretrained/benchmark_summary.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/results/ESMAraPPI/pretrained/benchmark_summary.csv)
-* **Task C2 Predictions:** [`results/ESMAraPPI/pretrained/esmarappi_c2_plant_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/results/ESMAraPPI/pretrained/esmarappi_c2_plant_scores.csv)
-* **Task C3 Predictions:** [`results/ESMAraPPI/pretrained/esmarappi_c3_plant_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/results/ESMAraPPI/pretrained/esmarappi_c3_plant_scores.csv)
-* **Task C2 Metrics Summary:** [`results/ESMAraPPI/pretrained/esm_c2_metrics.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/results/ESMAraPPI/pretrained/esm_c2_metrics.txt)
-* **Task C3 Metrics Summary:** [`results/ESMAraPPI/pretrained/esm_c3_metrics.txt`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/results/ESMAraPPI/pretrained/esm_c3_metrics.txt)
-* **Zero-Shot ESMAraPPI Report:** [`docs/zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md)
-* **DeepAraPPI Pretrained Report:** [`docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md)
-* **Retraining Methodology:** [`docs/ppi_head_retraining/ppi_head_retraining_methodology.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/ppi_head_retraining/ppi_head_retraining_methodology.md)
-* **HPC Execution Log:** [`logs/training/pplm_train_esmarappi.log`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/logs/training/pplm_train_esmarappi.log)
+* **Consolidated Benchmark Summary:** [`results/ESMAraPPI/pretrained/benchmark_summary.csv`](../../results/ESMAraPPI/pretrained/benchmark_summary.csv)
+* **Task C2 Predictions:** [`results/ESMAraPPI/pretrained/esmarappi_c2_plant_scores.csv`](../../results/ESMAraPPI/pretrained/esmarappi_c2_plant_scores.csv)
+* **Task C3 Predictions:** [`results/ESMAraPPI/pretrained/esmarappi_c3_plant_scores.csv`](../../results/ESMAraPPI/pretrained/esmarappi_c3_plant_scores.csv)
+* **Task C2 Metrics Summary:** [`results/ESMAraPPI/pretrained/esm_c2_metrics.txt`](../../results/ESMAraPPI/pretrained/esm_c2_metrics.txt)
+* **Task C3 Metrics Summary:** [`results/ESMAraPPI/pretrained/esm_c3_metrics.txt`](../../results/ESMAraPPI/pretrained/esm_c3_metrics.txt)
+* **Zero-Shot ESMAraPPI Report:** [`docs/zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md`](../../docs/zero_shot_benchmarking/benchmark_analysis_esmarappi_vs_pplm.md)
+* **DeepAraPPI Pretrained Report:** [`docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md`](../../docs/ppi_head_retraining/benchmark_analysis_pretrained_pplm_deeparappi.md)
+* **Retraining Methodology:** [`docs/ppi_head_retraining/ppi_head_retraining_methodology.md`](../../docs/ppi_head_retraining/ppi_head_retraining_methodology.md)
+* **HPC Execution Log:** [`logs/training/pplm_train_esmarappi.log`](../../logs/training/pplm_train_esmarappi.log)

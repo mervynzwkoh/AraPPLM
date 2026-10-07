@@ -192,11 +192,11 @@ The optimal threshold shifted from ~0.09 (zero-shot) to ~0.31–0.36 (plant-pret
 
 ## 6. Artifact & File References
 
-* **Benchmark Summary (Pretrained):** [`results/DeepAraPPI/pretrained/benchmark_summary.csv`](../results/DeepAraPPI/pretrained/benchmark_summary.csv)
-* **Task 2 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_c2_plant_scores.csv`](../results/DeepAraPPI/pretrained/deepara_c2_plant_scores.csv)
-* **Task 3 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_c3_plant_scores.csv`](../results/DeepAraPPI/pretrained/deepara_c3_plant_scores.csv)
-* **Task 4 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_rice_plant_scores.csv`](../results/DeepAraPPI/pretrained/deepara_rice_plant_scores.csv)
-* **Zero-Shot Results:** [`results/DeepAraPPI/zero-shot/`](../results/DeepAraPPI/zero-shot/)
-* **Training Methodology:** [`docs/ppi_head_retraining_methodology.md`](ppi_head_retraining_methodology.md)
-* **Zero-Shot Benchmark Report:** [`docs/benchmark_analysis_deeparappi_vs_pplm.md`](benchmark_analysis_deeparappi_vs_pplm.md)
-* **Training Logs:** [`logs/training/`](../logs/training/)
+* **Benchmark Summary (Pretrained):** [`results/DeepAraPPI/pretrained/benchmark_summary.csv`](../../results/DeepAraPPI/pretrained/benchmark_summary.csv)
+* **Task 2 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_c2_plant_scores.csv`](../../results/DeepAraPPI/pretrained/deepara_c2_plant_scores.csv)
+* **Task 3 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_c3_plant_scores.csv`](../../results/DeepAraPPI/pretrained/deepara_c3_plant_scores.csv)
+* **Task 4 Predictions (Pretrained):** [`results/DeepAraPPI/pretrained/deepara_rice_plant_scores.csv`](../../results/DeepAraPPI/pretrained/deepara_rice_plant_scores.csv)
+* **Zero-Shot Results:** [`results/DeepAraPPI/zero-shot/`](../../results/DeepAraPPI/zero-shot/)
+* **Training Methodology:** [`docs/ppi_head_retraining/ppi_head_retraining_methodology.md`](ppi_head_retraining_methodology.md)
+* **Zero-Shot Benchmark Report:** [`docs/zero_shot_benchmarking/benchmark_analysis_deeparappi_vs_pplm.md`](../zero_shot_benchmarking/benchmark_analysis_deeparappi_vs_pplm.md)
+* **Training Logs:** [`logs/training/`](../../logs/training/)

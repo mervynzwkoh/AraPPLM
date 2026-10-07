@@ -1,0 +1,21 @@
+## Title: Plant Protein–Protein Interaction Prediction Using Protein Language Models
+
+### Specific Aims
+1. Construct a benchmark dataset for plant protein–protein interaction prediction by collecting experimentally validated plant PPIs (e.g., Arabidopsis) from public databases and literature, together with a corresponding negative dataset for model evaluation.
+2. Evaluate protein language model–based approaches for plant PPI prediction by benchmarking existing models on the curated dataset and analyzing their generalization performance across different plant species.
+3. Develop and evaluate a plant-specific PPI prediction model by adapting or fine-tuning protein language model representations for plant proteins, and compare its performance with existing sequence-based prediction methods.
+4. Provide a reproducible prediction pipeline for plant PPI prediction, including dataset preparation, model inference, benchmarking, and documentation for future research use.
+
+### Scientific Background
+Protein–protein interactions (PPIs) form the molecular basis of virtually all biological processes, including signal transduction, metabolism, development, and stress responses. In plants, understanding PPI networks is essential for elucidating regulatory pathways underlying growth, environmental adaptation, and disease resistance, with important applications in crop improvement and synthetic biology. However, experimentally identifying PPIs remains labor-intensive, time-consuming, and expensive, making it impractical to characterize interactomes at the proteome scale. Recent advances in protein language models (PLMs) have demonstrated remarkable success in learning rich sequence representations that can be transferred to a wide range of protein prediction tasks. While several PLM-based methods have achieved promising performance for human protein interaction prediction, their applicability to plant proteins remains largely unexplored. Plant proteins exhibit distinct evolutionary histories, domain architectures, and interaction mechanisms compared with animal proteins, and currently available plant PPI datasets are relatively limited and fragmented. As a result, existing computational models often show limited generalization to plant species. This project aims to investigate how protein language models can be adapted for plant protein–protein interaction prediction. The student will construct benchmark datasets from publicly available plant PPI resources, evaluate existing PLM-based methods on plant proteins, and explore strategies to improve prediction performance through transfer learning or model adaptation. Successful completion of this project will provide a reproducible benchmarking framework and contribute toward more accurate computational prediction of plant protein interaction networks, facilitating future biological discovery and experimental prioritization.
+
+### Relevant References 
+1. Lin Z, Akin H, Rao R, et al. Evolutionary-scale prediction of atomic-level protein structure with a language model. Science. 2023;379(6637):1123–1130.
+2. Rives A, Meier J, Sercu T, et al. Biological structure and function emerge from scaling unsupervised learning to 250 million protein sequences. Proceedings of the National Academy of Sciences. 2021;118:e2016239118.
+3. Liu J, Chen H, Zhang Y. A paired sequence language model for protein-protein interaction modeling. Nature Communications. 2026;17:3733.
+4. Cong Q, Yang Y, Sun Y, et al. Predicting protein-protein interactions in the human proteome. Science 2025, 390:eadw8344.
+5. Zheng J, Yang X, Huang Y, Yang S, Wuchty S, Zhang Z. Deep learning-assisted prediction of protein–protein interactions in Arabidopsis thaliana. The Plant Journal. 2023;114(4):984–994.
+6. Zhou K, Lei C, Zheng J, Huang Y, Zhang Z. Pre-trained protein language model sheds new light on the prediction of Arabidopsis protein–protein interactions. Plant Methods. 2023;19:141.
+
+### Stretch Goals
+If the project is successfully completed, the framework can be extended to related tasks such as protein binding affinity and binding site prediction, with the potential to generate novel biological insights and lead to scientific publications.

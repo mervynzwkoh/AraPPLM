@@ -14,13 +14,38 @@ build/
 venv/
 ENV/
 
-# Large sequence files (reproducible — see docs/data_processing_pipeline.md)
+# Large sequence & raw data files (reproducible — see docs/data_processing_pipeline.md)
+data/raw/
 data/arabidopsis/uniprot_arabidopsis.fasta
 data/arabidopsis/*.pkl
 data/rice/uniprot_rice.fasta
 !data/rice/missing_rice.fasta
 data/rice/*.pkl
 data/**/*.pkl
+*.parquet
+*.parquet.tmp
+*.jsonl
+*.npy
+*.npz
+*.h5
+*.hdf5
+
+# Intermediate and processed bulky datasets (reproducible via ETL pipeline)
+data/interim/
+data/processed/**/*.tsv
+data/processed/**/intermediate/
+
+# Transient audit outputs
+*_source_breakdown.json
+
+# Test & coverage caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment variables
+.env
+.env.*
 
 # ============================================================
 # Model weights (download from PPLM release)

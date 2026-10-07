@@ -1,0 +1,706 @@
+{
+  "phase": 2,
+  "name": "normalize_evidence",
+  "pipeline_architecture": "streaming_resumable_hive_parquet_warehouse",
+  "created_utc": "2026-09-25T03:17:01.776181+00:00",
+  "git_commit": "26e95e3dd0fca29a06e3d1319e147c12f3597532",
+  "environment": {
+    "python_version": "3.12.3 | packaged by conda-forge | (main, Apr 15 2024, 18:20:11) [MSC v.1938 64 bit (AMD64)]",
+    "pandas_version": "2.2.2",
+    "pyarrow_version": "25.0.1",
+    "psutil_version": "7.2.2",
+    "pytest_version": "9.1.1"
+  },
+  "performance_and_resources": {
+    "peak_rss_mb": 830.61,
+    "memory_ceiling_mb": 1536.0,
+    "memory_ceiling_validated": true
+  },
+  "phase1_reference": {
+    "phase1_manifest_path": "manifests/phase1_manifest.json",
+    "phase1_manifest_sha256": "43e6eb836aa6c45bb1e9f82e99b1bc256ba041678219b9a6d2d4baa0ac1cd22c"
+  },
+  "schema_metadata": {
+    "schema_file": "data/interim/phase2/schemas/evidence_schema.json",
+    "assay_mapping_file": "data/interim/phase2/schemas/assay_mapping.tsv"
+  },
+  "canonical_evidence_warehouse": {
+    "data_root": "C:\\Users\\User\\AraPPLM_Data\\phase2",
+    "evidence_dataset_dir": "C:\\Users\\User\\AraPPLM_Data\\phase2\\evidence_dataset",
+    "partitioning_layout": "species_code=<SPECIES>/source_resource=<RESOURCE>/part_<CHUNK>.parquet",
+    "total_parquet_parts": 132,
+    "total_warehouse_bytes": 1452227037,
+    "training_eligibility_preservation": "column: eligible_for_training (boolean)",
+    "parts": [
+      {
+        "partition_path": "species_code=ARA/source_resource=BIOGRID/part_00000.parquet",
+        "size_bytes": 15299266
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=BIOGRID/part_00001.parquet",
+        "size_bytes": 11569607
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=INTACT/part_00000.parquet",
+        "size_bytes": 39322733
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=INTACT/part_00001.parquet",
+        "size_bytes": 6249404
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00000.parquet",
+        "size_bytes": 11149066
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00001.parquet",
+        "size_bytes": 11231938
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00002.parquet",
+        "size_bytes": 10995363
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00003.parquet",
+        "size_bytes": 11174354
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00004.parquet",
+        "size_bytes": 11267651
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00005.parquet",
+        "size_bytes": 11231849
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00006.parquet",
+        "size_bytes": 11226490
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00007.parquet",
+        "size_bytes": 11234522
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00008.parquet",
+        "size_bytes": 11213428
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=STRING/part_00009.parquet",
+        "size_bytes": 9762600
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00000.parquet",
+        "size_bytes": 16477164
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00001.parquet",
+        "size_bytes": 17733933
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00002.parquet",
+        "size_bytes": 15894605
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00003.parquet",
+        "size_bytes": 16507313
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00004.parquet",
+        "size_bytes": 17435164
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00005.parquet",
+        "size_bytes": 16693330
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00006.parquet",
+        "size_bytes": 17551024
+      },
+      {
+        "partition_path": "species_code=ARA/source_resource=XLMS/part_00007.parquet",
+        "size_bytes": 14602821
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=BIOGRID/part_00000.parquet",
+        "size_bytes": 35873
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=INTACT/part_00000.parquet",
+        "size_bytes": 39703554
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=INTACT/part_00001.parquet",
+        "size_bytes": 802182
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00000.parquet",
+        "size_bytes": 11167381
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00001.parquet",
+        "size_bytes": 11173498
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00002.parquet",
+        "size_bytes": 11133251
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00003.parquet",
+        "size_bytes": 11220399
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00004.parquet",
+        "size_bytes": 11200448
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00005.parquet",
+        "size_bytes": 11182583
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00006.parquet",
+        "size_bytes": 11225888
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00007.parquet",
+        "size_bytes": 11182759
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00008.parquet",
+        "size_bytes": 11207968
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00009.parquet",
+        "size_bytes": 11219365
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00010.parquet",
+        "size_bytes": 11152639
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00011.parquet",
+        "size_bytes": 11162445
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00012.parquet",
+        "size_bytes": 11145401
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00013.parquet",
+        "size_bytes": 11215296
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00014.parquet",
+        "size_bytes": 11195789
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00015.parquet",
+        "size_bytes": 11167126
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00016.parquet",
+        "size_bytes": 11213046
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00017.parquet",
+        "size_bytes": 11147395
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00018.parquet",
+        "size_bytes": 11163625
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00019.parquet",
+        "size_bytes": 11123277
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00020.parquet",
+        "size_bytes": 11135575
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00021.parquet",
+        "size_bytes": 11169980
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00022.parquet",
+        "size_bytes": 11076265
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00023.parquet",
+        "size_bytes": 11143956
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00024.parquet",
+        "size_bytes": 11161697
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00025.parquet",
+        "size_bytes": 11199798
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00026.parquet",
+        "size_bytes": 11232632
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00027.parquet",
+        "size_bytes": 11219722
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00028.parquet",
+        "size_bytes": 11095766
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00029.parquet",
+        "size_bytes": 11071962
+      },
+      {
+        "partition_path": "species_code=MAIZE/source_resource=STRING/part_00030.parquet",
+        "size_bytes": 2999415
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=BIOGRID/part_00000.parquet",
+        "size_bytes": 117756
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=INTACT/part_00000.parquet",
+        "size_bytes": 469137
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=INTACT/part_00001.parquet",
+        "size_bytes": 267283
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00000.parquet",
+        "size_bytes": 11195592
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00001.parquet",
+        "size_bytes": 11158506
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00002.parquet",
+        "size_bytes": 11105454
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00003.parquet",
+        "size_bytes": 11153687
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00004.parquet",
+        "size_bytes": 11072624
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00005.parquet",
+        "size_bytes": 11236777
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00006.parquet",
+        "size_bytes": 11241732
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00007.parquet",
+        "size_bytes": 11292696
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00008.parquet",
+        "size_bytes": 11289418
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00009.parquet",
+        "size_bytes": 11240574
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00010.parquet",
+        "size_bytes": 11260098
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00011.parquet",
+        "size_bytes": 11229973
+      },
+      {
+        "partition_path": "species_code=RICE/source_resource=STRING/part_00012.parquet",
+        "size_bytes": 10560281
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=BIOGRID/part_00000.parquet",
+        "size_bytes": 42944
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=INTACT/part_00000.parquet",
+        "size_bytes": 58574
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00000.parquet",
+        "size_bytes": 11147313
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00001.parquet",
+        "size_bytes": 11097111
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00002.parquet",
+        "size_bytes": 11138446
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00003.parquet",
+        "size_bytes": 11106881
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00004.parquet",
+        "size_bytes": 11168135
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00005.parquet",
+        "size_bytes": 11171779
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00006.parquet",
+        "size_bytes": 11158895
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00007.parquet",
+        "size_bytes": 11139861
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00008.parquet",
+        "size_bytes": 11005536
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00009.parquet",
+        "size_bytes": 10951234
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00010.parquet",
+        "size_bytes": 11062054
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00011.parquet",
+        "size_bytes": 11094250
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00012.parquet",
+        "size_bytes": 11119552
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00013.parquet",
+        "size_bytes": 11165452
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00014.parquet",
+        "size_bytes": 11251592
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00015.parquet",
+        "size_bytes": 11176517
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00016.parquet",
+        "size_bytes": 11213575
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00017.parquet",
+        "size_bytes": 11212731
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00018.parquet",
+        "size_bytes": 11176333
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00019.parquet",
+        "size_bytes": 11191027
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00020.parquet",
+        "size_bytes": 11154975
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00021.parquet",
+        "size_bytes": 11262426
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00022.parquet",
+        "size_bytes": 11199095
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00023.parquet",
+        "size_bytes": 11150060
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00024.parquet",
+        "size_bytes": 11244194
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00025.parquet",
+        "size_bytes": 11176858
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00026.parquet",
+        "size_bytes": 11226143
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00027.parquet",
+        "size_bytes": 11127104
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00028.parquet",
+        "size_bytes": 11214365
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00029.parquet",
+        "size_bytes": 11187368
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00030.parquet",
+        "size_bytes": 11270349
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00031.parquet",
+        "size_bytes": 11246394
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00032.parquet",
+        "size_bytes": 11218161
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00033.parquet",
+        "size_bytes": 11160987
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00034.parquet",
+        "size_bytes": 11112110
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00035.parquet",
+        "size_bytes": 11168154
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00036.parquet",
+        "size_bytes": 11172893
+      },
+      {
+        "partition_path": "species_code=SOYBEAN/source_resource=STRING/part_00037.parquet",
+        "size_bytes": 9134975
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=BIOGRID/part_00000.parquet",
+        "size_bytes": 59187
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=INTACT/part_00000.parquet",
+        "size_bytes": 56698
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00000.parquet",
+        "size_bytes": 11043246
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00001.parquet",
+        "size_bytes": 11059356
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00002.parquet",
+        "size_bytes": 11134468
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00003.parquet",
+        "size_bytes": 11130777
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00004.parquet",
+        "size_bytes": 11049182
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00005.parquet",
+        "size_bytes": 11115268
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00006.parquet",
+        "size_bytes": 11085788
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00007.parquet",
+        "size_bytes": 11083788
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00008.parquet",
+        "size_bytes": 11117011
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00009.parquet",
+        "size_bytes": 11139269
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00010.parquet",
+        "size_bytes": 11088509
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00011.parquet",
+        "size_bytes": 11058797
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00012.parquet",
+        "size_bytes": 11076321
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00013.parquet",
+        "size_bytes": 11061589
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00014.parquet",
+        "size_bytes": 11069608
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00015.parquet",
+        "size_bytes": 10952365
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00016.parquet",
+        "size_bytes": 10966427
+      },
+      {
+        "partition_path": "species_code=TOMATO/source_resource=STRING/part_00017.parquet",
+        "size_bytes": 1239811
+      }
+    ]
+  },
+  "repository_artifacts": {
+    "total_files": 27,
+    "total_bytes": 51928685,
+    "files": [
+      {
+        "relative_path": "data/interim/phase2/DATA_LOCATION.txt",
+        "sha256": "1ebe55392559a7b588d1dd751c9a82be2f6428082b169f86be6e6f6a3b47b3e3",
+        "size_bytes": 426
+      },
+      {
+        "relative_path": "data/interim/phase2/schemas/assay_mapping.tsv",
+        "sha256": "a01c5944fa770a26ee94e99456192e2ea6d107bb0d0a39d2148fe320ed076939",
+        "size_bytes": 16813
+      },
+      {
+        "relative_path": "data/interim/phase2/schemas/evidence_schema.json",
+        "sha256": "b9e9395b44bc8f2566af75ff81076b5a78692d21735c6ff65a84931409765c8a",
+        "size_bytes": 13814
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/ara_source_breakdown.json",
+        "sha256": "365edc3bc5bdec60bb87bf642420389d60cc11fa812d3e1dd7c9689446966170",
+        "size_bytes": 5851
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/assay_summary.tsv",
+        "sha256": "9e0b06ecacd62a846ee7ae8e386511c78b6770f03acca28085e89610148a780e",
+        "size_bytes": 284
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/interaction_semantics_summary.tsv",
+        "sha256": "6041d9d4c01c96117efe4fb8548f4cba303a03b5c576455b2c67749160705afe",
+        "size_bytes": 141
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/namespace_summary.tsv",
+        "sha256": "aa3316460c6209fd3945974e7a9cb7f519347f7d240166340993a32a876b51e8",
+        "size_bytes": 166
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/rice_source_breakdown.json",
+        "sha256": "093bb86a928e999975bd3cb1274f70bbd25640ccef96eed3efe1f7e89592c789",
+        "size_bytes": 4201
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/source_record_counts.tsv",
+        "sha256": "bb34bd039e994dcad689b1f94f5fa193db10fe709caf50312bb7b07b533d6f53",
+        "size_bytes": 2291
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/taxon_summary.tsv",
+        "sha256": "299dd5c541fb6d8567f12560875a13d0f3b5fb8b10a55c2fcdd130f99006a9c9",
+        "size_bytes": 2492
+      },
+      {
+        "relative_path": "data/interim/phase2/audits/unmapped_psi_mi_terms.tsv",
+        "sha256": "c94c7407f6048439e9ea32fc6e3d2adaa79665c40d27566cd44fd649514808ee",
+        "size_bytes": 20
+      },
+      {
+        "relative_path": "data/interim/phase2/rejected/rejected_records.tsv",
+        "sha256": "08196ba2aba9dafa35742f6941bb30edf05283291bba871e21c32e0474e818aa",
+        "size_bytes": 51
+      },
+      {
+        "relative_path": "data/interim/phase2/sample/sample_normalized_evidence.tsv",
+        "sha256": "4b0475a6fd7a8072e53ec15df687f5dcaafd309c83e3392567f48a0df3f7369c",
+        "size_bytes": 1842915
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/aracofusion/README.md",
+        "sha256": "3db32c44d6de52ca8a2215880825e2e3b8fab818509a0c99b8cf4e5d7f347c43",
+        "size_bytes": 759
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/all_rice_positive_negative_DeepAraPPI_normalized.tsv",
+        "sha256": "19cd69935822e453ffbad88fe95496ab2ef3b3a163c3c690fbdf02f411d394fe",
+        "size_bytes": 990520
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/all_rice_PPI_positive_DeepAraPPI_normalized.tsv",
+        "sha256": "a6529d232a7e5d9929a2f3a2f3c153bbccca6716149c1de22c4540f6568e1849",
+        "size_bytes": 83226
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/c1_ppi_sample_DeepAraPPI_normalized.tsv",
+        "sha256": "7648a23a7dd1bfa467677d153f626995d39fd2c083f8bd64b3f7d0de30172555",
+        "size_bytes": 4239743
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/c2_ppi_sample_DeepAraPPI_normalized.tsv",
+        "sha256": "853ce31768b1f46c638821bd87e4ed459f653aaf7699bdf3f55d297f1fd3ed59",
+        "size_bytes": 8964813
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/c3_ppi_sample_DeepAraPPI_normalized.tsv",
+        "sha256": "3cfe7a8bfffdc9f2bc28fb1d418b257767a58c9cf638c6ed18490385cc9d15ee",
+        "size_bytes": 4487377
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/total_positive_negative_samples_DeepAraPPI_normalized.tsv",
+        "sha256": "41aa0aaa63ba6bee8b59b6fa0983cb50eb10fa56a0ba1b4c77a914856c5c5892",
+        "size_bytes": 20092964
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/deeparappi/total_positive_samples_DeepAraPPI_normalized.tsv",
+        "sha256": "b43200bea3f03f23d383905a5aaecb628ae3a7359caa9f001cd8050e82df54af",
+        "size_bytes": 1639265
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/esmarappi/c1Train_normalized.tsv",
+        "sha256": "515df92b1a4ad1b9100705ab4ef52116bbd71942f6b510f4c2aa178029600205",
+        "size_bytes": 4477754
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/esmarappi/c2Pred_normalized.tsv",
+        "sha256": "485567cda116e6bcc8f29b6031f4565dd21fcfb9718c54dbcfd2bbfe1407a4bf",
+        "size_bytes": 4090392
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/esmarappi/c3Pred_normalized.tsv",
+        "sha256": "5b59bd32425e31c94ae5519625098ec8882496d84a1576e63af9d4841b2609c7",
+        "size_bytes": 961427
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/esmarappi/missing_esmarappi.fasta",
+        "sha256": "5c841c4b71a022979a99167c354fc3a9ddf0a6ec29f1df088dff0fc15f944771",
+        "size_bytes": 2988
+      },
+      {
+        "relative_path": "data/interim/phase2/legacy/esmarappi/missing_esmarappi_ids_normalized.tsv",
+        "sha256": "7f7ead41714fb53b6e9beddfc79dea77b75c6ddf07aee52ee2cd635be5bbbe7b",
+        "size_bytes": 906
+      },
+      {
+        "relative_path": "manifests/phase2_progress.json",
+        "sha256": "44812ccc8804e1ff720d5dd1ed7f2ed4fc0a327bd9df158b702149e33627148e",
+        "size_bytes": 7086
+      }
+    ]
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "dataset_root": "C:\\Users\\User\\AraPPLM_Data\\phase2\\evidence_dataset",
+  "created_utc": "2026-09-21T06:10:48.107627+00:00",
+  "updated_utc": "2026-09-21T06:28:00.539110+00:00",
+  "peak_rss_mb": 830.61,
+  "sources": {
+    "SRC_B2_INTACT_RICE_39947": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/rice/intact/intact_rice_taxid39947_release252.mitab27.txt",
+      "n_input": 649,
+      "n_normalized": 649,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:10:57.669235+00:00"
+    },
+    "SRC_B2_INTACT_RICE_4530": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/rice/intact/intact_rice_taxid4530_release252.mitab27.txt",
+      "n_input": 378,
+      "n_normalized": 378,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:10:57.744199+00:00"
+    },
+    "SRC_C1_INTACT_MAIZE": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/external_holdout/maize/intact_maize_taxid4577_release252.mitab27.txt",
+      "n_input": 51009,
+      "n_normalized": 51009,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 2,
+      "completed_at": "2026-09-21T06:11:04.584097+00:00"
+    },
+    "SRC_C2_INTACT_TOMATO": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/external_holdout/tomato/intact_tomato_taxid4081_release252.mitab27.txt",
+      "n_input": 29,
+      "n_normalized": 29,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:04.695164+00:00"
+    },
+    "SRC_C3_INTACT_SOYBEAN": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/external_holdout/soybean/intact_soybean_taxid3847_release252.mitab27.txt",
+      "n_input": 21,
+      "n_normalized": 21,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:04.729248+00:00"
+    },
+    "SRC_B3_BIOGRID_RICE": {
+      "status": "COMPLETED",
+      "source_resource": "BioGRID",
+      "file": "data/raw/rice/biogrid/BIOGRID-ORGANISM-Oryza_sativa_Japonica-5.0.261.tab3.txt",
+      "n_input": 366,
+      "n_normalized": 366,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:12.722115+00:00"
+    },
+    "SRC_C1_BIOGRID_MAIZE": {
+      "status": "COMPLETED",
+      "source_resource": "BioGRID",
+      "file": "data/raw/external_holdout/maize/BIOGRID-ORGANISM-Zea_mays-5.0.261.tab3.txt",
+      "n_input": 18,
+      "n_normalized": 18,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:12.754641+00:00"
+    },
+    "SRC_C2_BIOGRID_TOMATO": {
+      "status": "COMPLETED",
+      "source_resource": "BioGRID",
+      "file": "data/raw/external_holdout/tomato/BIOGRID-ORGANISM-Solanum_lycopersicum-5.0.261.tab3.txt",
+      "n_input": 141,
+      "n_normalized": 141,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:12.796020+00:00"
+    },
+    "SRC_C3_BIOGRID_SOYBEAN": {
+      "status": "COMPLETED",
+      "source_resource": "BioGRID",
+      "file": "data/raw/external_holdout/soybean/BIOGRID-ORGANISM-Glycine_max-5.0.261.tab3.txt",
+      "n_input": 46,
+      "n_normalized": 46,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 1,
+      "completed_at": "2026-09-21T06:11:12.828457+00:00"
+    },
+    "SRC_A4_XLMS_2026_PLINK_SEARCH": {
+      "status": "COMPLETED",
+      "source_resource": "PRIDE / pLink 3.2",
+      "file": "data/raw/arabidopsis/xlms_2026/Total_XL_plink3-2_v3.csv",
+      "n_input": 390526,
+      "n_normalized": 390526,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 8,
+      "completed_at": "2026-09-21T06:11:47.930137+00:00"
+    },
+    "SRC_A3_STRING_ARA_PHYSICAL": {
+      "status": "COMPLETED",
+      "source_resource": "STRING",
+      "file": "data/raw/arabidopsis/string/3702.protein.physical.links.detailed.v12.0.txt.gz",
+      "n_input": 986540,
+      "n_normalized": 986540,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 10,
+      "completed_at": "2026-09-21T06:14:51.593385+00:00"
+    },
+    "SRC_B4_STRING_RICE_PHYSICAL": {
+      "status": "COMPLETED",
+      "source_resource": "STRING",
+      "file": "data/raw/rice/string/39947.protein.physical.links.detailed.v12.0.txt.gz",
+      "n_input": 1294058,
+      "n_normalized": 1294058,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 13,
+      "completed_at": "2026-09-21T06:16:02.812817+00:00"
+    },
+    "SRC_C1_STRING_MAIZE_PHYSICAL": {
+      "status": "COMPLETED",
+      "source_resource": "STRING",
+      "file": "data/raw/external_holdout/maize/4577.protein.physical.links.detailed.v12.0.txt.gz",
+      "n_input": 3025182,
+      "n_normalized": 3025182,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 31,
+      "completed_at": "2026-09-21T06:18:46.179851+00:00"
+    },
+    "SRC_C2_STRING_TOMATO_PHYSICAL": {
+      "status": "COMPLETED",
+      "source_resource": "STRING",
+      "file": "data/raw/external_holdout/tomato/4081.protein.physical.links.detailed.v12.0.txt.gz",
+      "n_input": 1710092,
+      "n_normalized": 1710092,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 18,
+      "completed_at": "2026-09-21T06:20:10.699628+00:00"
+    },
+    "SRC_C3_STRING_SOYBEAN_PHYSICAL": {
+      "status": "COMPLETED",
+      "source_resource": "STRING",
+      "file": "data/raw/external_holdout/soybean/3847.protein.physical.links.detailed.v12.0.txt.gz",
+      "n_input": 3782422,
+      "n_normalized": 3782422,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 38,
+      "completed_at": "2026-09-21T06:23:14.933753+00:00"
+    },
+    "SRC_A2_BIOGRID_ARA": {
+      "status": "COMPLETED",
+      "source_resource": "BioGRID",
+      "file": "data/raw/arabidopsis/biogrid/BIOGRID-ORGANISM-Arabidopsis_thaliana_Columbia-5.0.261.tab3.txt",
+      "n_input": 84422,
+      "n_normalized": 84422,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 2,
+      "completed_at": "2026-09-21T06:26:43.875216+00:00"
+    },
+    "SRC_A1_INTACT_ARA": {
+      "status": "COMPLETED",
+      "source_resource": "IntAct",
+      "file": "data/raw/arabidopsis/intact/intact_arabidopsis_taxid3702_release252.mitab27.txt",
+      "n_input": 58740,
+      "n_normalized": 58740,
+      "n_rejected": 0,
+      "rejection_rate_pct": 0.0,
+      "chunks_written": 2,
+      "completed_at": "2026-09-21T06:27:59.653793+00:00"
+    }
+  }
+}

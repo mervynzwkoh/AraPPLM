@@ -260,12 +260,12 @@ These benchmark results establish a strong foundation. By combining PPLM's seque
 
 ## 7. Artifact & File References
 
-* **Consolidated Summary:** [`results/DeepAraPPI/benchmark_summary.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/DeepAraPPI/benchmark_summary.csv)
-* **Task 1 (C1 Reference) Predictions:** [`results/DeepAraPPI/deepara_c1_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/DeepAraPPI/deepara_c1_scores.csv)
-* **Task 2 (C2 Held-Out) Predictions:** [`results/DeepAraPPI/deepara_c2_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/DeepAraPPI/deepara_c2_scores.csv)
-* **Task 3 (C3 Held-Out) Predictions:** [`results/DeepAraPPI/deepara_c3_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/DeepAraPPI/deepara_c3_scores.csv)
-* **Task 4 (Rice Held-Out) Predictions:** [`results/DeepAraPPI/deepara_rice_scores.csv`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/results/DeepAraPPI/deepara_rice_scores.csv)
-* **Evaluation Script:** [`scripts/evaluate_pplm.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/scripts/evaluate_pplm.py)
-* **DeepAraPPI Literature Reference:** [`docs/lit_review/LitReview_DeepAraPPI.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_DeepAraPPI.md)
-* **ARACoFusion Literature Reference:** [`docs/lit_review/LitReview_AraCoFusion.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_AraCoFusion.md)
-* **ESMAraPPI Literature Reference:** [`docs/lit_review/LitReview_ESMAraPPI.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/docs/lit_review/LitReview_ESMAraPPI.md)
+* **Consolidated Summary:** [`results/DeepAraPPI/zero-shot/benchmark_summary.csv`](../../results/DeepAraPPI/zero-shot/benchmark_summary.csv)
+* **Task 1 (C1 Reference) Predictions:** [`results/DeepAraPPI/zero-shot/deepara_c1_scores.csv`](../../results/DeepAraPPI/zero-shot/deepara_c1_scores.csv)
+* **Task 2 (C2 Held-Out) Predictions:** [`results/DeepAraPPI/zero-shot/deepara_c2_scores.csv`](../../results/DeepAraPPI/zero-shot/deepara_c2_scores.csv)
+* **Task 3 (C3 Held-Out) Predictions:** [`results/DeepAraPPI/zero-shot/deepara_c3_scores.csv`](../../results/DeepAraPPI/zero-shot/deepara_c3_scores.csv)
+* **Task 4 (Rice Held-Out) Predictions:** [`results/DeepAraPPI/zero-shot/deepara_rice_scores.csv`](../../results/DeepAraPPI/zero-shot/deepara_rice_scores.csv)
+* **Evaluation Script:** [`scripts/benchmarking/evaluate_pplm.py`](../../scripts/benchmarking/evaluate_pplm.py)
+* **DeepAraPPI Literature Reference:** [`docs/lit_review/LitReview_DeepAraPPI.md`](../../docs/lit_review/LitReview_DeepAraPPI.md)
+* **ARACoFusion Literature Reference:** [`docs/lit_review/LitReview_AraCoFusion.md`](../../docs/lit_review/LitReview_AraCoFusion.md)
+* **ESMAraPPI Literature Reference:** [`docs/lit_review/LitReview_ESMAraPPI.md`](../../docs/lit_review/LitReview_ESMAraPPI.md)

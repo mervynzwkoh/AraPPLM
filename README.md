@@ -58,8 +58,8 @@ does plant-specific domain adaptation improve performance?
 
 ### Setup
 ```bash
-git clone --recurse-submodules https://github.com/YOUR_USERNAME/AIS5281-Plant-PPLM.git
-cd AIS5281-Plant-PPLM
+git clone --recurse-submodules https://github.com/mervynzwkoh/AraPPLM.git
+cd AraPPLM
 
 # Create conda environment
 conda env create -f PPLM_NSCC_A100.yml
@@ -75,34 +75,38 @@ python scripts/data_preparation/build_sequence_db.py
 ### Run Benchmarking (Zero-Shot)
 ```bash
 # Submit PBS jobs on NSCC
-qsub scripts/run_all_benchmarks_nscc.pbs
-qsub scripts/run_esmarappi_benchmarks_nscc.pbs
+qsub scripts/hpc/run_all_benchmarks_nscc.pbs
+qsub scripts/hpc/run_esmarappi_benchmarks_nscc.pbs
 ```
 
 ### Run PPI Head Retraining
 ```bash
 # End-to-end retraining on DeepAraPPI C1
-qsub scripts/run_train_deeparappi_nscc.pbs
+qsub scripts/hpc/run_train_deeparappi_nscc.pbs
 
 # End-to-end retraining on ESMAraPPI C1
-qsub scripts/run_train_esmarappi_nscc.pbs
+qsub scripts/hpc/run_train_esmarappi_nscc.pbs
 ```
 
 ## Project Structure
 ```
 ├── PPLM/                  # Original PPLM (submodule)
+├── checksums/             # SHA-256 provenance checksums (Phase 1 & Phase 2)
+├── manifests/             # Machine-readable manifests and progress tracking
+├── metadata/              # Source registry, licenses, and BibTeX citations
 ├── scripts/
+│   ├── hpc/               # PBS batch job scripts for NSCC ASPIRE 2A
+│   ├── phase2/            # Streaming ETL evidence normalization pipeline
 │   ├── training/          # PPI head retraining pipeline (6 scripts)
 │   ├── benchmarking/      # Zero-shot benchmark scripts
-│   └── data_preparation/  # Sequence DB builders
-├── data/                  # Benchmark datasets & sequence data
+│   └── data_preparation/  # Sequence DB builders & verifiers
+├── data/                  # Benchmark datasets, interim tables, & sequence data
 ├── features/              # Pre-extracted PPLM backbone features
 ├── models/                # Trained model checkpoints
 ├── results/               # Benchmark & evaluation outputs
 ├── logs/                  # HPC PBS job logs
-│   ├── benchmarking/
-│   └── training/
-└── docs/                  # Technical documentation
+├── tests/                 # Unit test suite (pytest)
+└── docs/                  # Technical documentation & scientific audit reports
 ```
 
 ## Documentation
@@ -110,8 +114,14 @@ qsub scripts/run_train_esmarappi_nscc.pbs
 | Document | Description |
 |----------|-------------|
 | [technical_summary.md](docs/technical_summary.md) | Architecture, benchmarking results & progress tracker |
+| [project_overview.md](docs/project_overview.md) | High-level synthesis of benchmark results and methodology |
 | [data_processing_pipeline.md](docs/data_processing_pipeline.md) | Sequence retrieval & database construction |
 | [plant-pplm-methodology.md](docs/plant-pplm-methodology.md) | Proposed fine-tuning methodology (LoRA, focal loss) |
+| **Dataset Construction (Phase 1 & Phase 2)** | |
+| [P1_source_freeze_report.md](docs/dataset_construction/P1_source_freeze_report.md) | Phase 1 raw data freeze & provenance registry |
+| [P2_evidence_normalization_report.md](docs/dataset_construction/P2_evidence_normalization_report.md) | Phase 2 normalized canonical Parquet warehouse audit |
+| [ara_data_breakdown.md](docs/dataset_construction/ara_data_breakdown.md) | Arabidopsis source-by-source interaction breakdown |
+| [rice_data_breakdown.md](docs/dataset_construction/rice_data_breakdown.md) | Rice source-by-source interaction breakdown |
 | **Head Retraining** | |
 | [ppi_head_retraining_methodology.md](docs/ppi_head_retraining/ppi_head_retraining_methodology.md) | Retraining technical methodology, design decisions & training protocol |
 | [ppi_head_retraining_walkthrough.md](docs/ppi_head_retraining/ppi_head_retraining_walkthrough.md) | Step-by-step run instructions for HPC training |

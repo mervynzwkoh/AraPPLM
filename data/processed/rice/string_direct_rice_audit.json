@@ -1,0 +1,57 @@
+{
+  "timestamp_utc": "2026-10-06T02:21:46.805525+00:00",
+  "species": "Oryza sativa Japonica Group (TaxID 39947)",
+  "source": "STRING v12.0 Physical Links Full (39947.protein.physical.links.full.v12.0.txt.gz)",
+  "full_network_context": {
+    "all_functional_links_total": 67438350,
+    "all_functional_links_experiments_gt_0": 862,
+    "all_functional_links_experiments_transferred_gt_0": 61272824
+  },
+  "physical_links_breakdown": {
+    "total_physical_records": 1294058,
+    "total_physical_undirected_pairs": 647029,
+    "direct_experiments_records": 862,
+    "direct_experiments_undirected_pairs": 431,
+    "direct_experiments_unique_proteins": 435,
+    "transferred_experiments_only_records": 1074164,
+    "transferred_experiments_only_undirected_pairs": 537082,
+    "neither_experimental_records": 219032,
+    "neither_experimental_undirected_pairs": 109516
+  },
+  "overlap_with_curated_intact_biogrid": {
+    "curated_total_unique_pairs": 913,
+    "string_direct_shared_pairs": 346,
+    "string_direct_novel_pairs": 85,
+    "shared_percentage": 80.28
+  },
+  "score_distribution": {
+    "experiments_score_counts": {
+      "292": 234,
+      "230": 151,
+      "900": 14,
+      "421": 10,
+      "237": 6,
+      "800": 4,
+      "322": 3,
+      "423": 3,
+      "457": 2,
+      "287": 1,
+      "362": 1,
+      "576": 1,
+      "929": 1
+    },
+    "combined_score_summary": {
+      "min": 229,
+      "max": 997,
+      "mean": 340.39,
+      "ge_700_high_confidence_pairs": 35
+    }
+  },
+  "exported_files": [
+    "string_direct_rice_evidence.tsv",
+    "string_direct_rice_evidence.parquet",
+    "string_direct_rice_pairs_deduplicated.tsv",
+    "string_direct_rice_pairs_deduplicated.parquet",
+    "string_direct_rice_benchmark_2col.tsv"
+  ]
+}

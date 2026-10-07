@@ -20,16 +20,22 @@ AraPPLM/
 │   └── weights/                        # pplm_t33_650M.pt & ppi_models.pkl (HPC)
 │
 ├── scripts/
-│   ├── batch_predict.py                # Core batch inference script (with combined pair cropping)
-│   ├── evaluate_pplm.py                # Evaluation & benchmark comparison engine
-│   ├── run_all_benchmarks_nscc.pbs     # PBS: 4-task zero-shot benchmarking
-│   ├── run_esmarappi_benchmarks_nscc.pbs # PBS: ESMAraPPI zero-shot benchmarking
-│   ├── run_train_deeparappi_nscc.pbs   # PBS: End-to-end DeepAraPPI C1 training
-│   ├── run_train_esmarappi_nscc.pbs    # PBS: End-to-end ESMAraPPI C1 training
-│   ├── run_resume_deeparappi_nscc.pbs  # PBS: Resume DeepAraPPI from Stage 3
-│   ├── benchmarking/                   # Benchmark script copies (for training pipeline)
-│   │   ├── batch_predict.py
-│   │   └── evaluate_pplm.py
+│   ├── hpc/                            # PBS batch job scripts for NSCC ASPIRE 2A
+│   │   ├── run_all_benchmarks_nscc.pbs     # PBS: 4-task zero-shot benchmarking
+│   │   ├── run_esmarappi_benchmarks_nscc.pbs # PBS: ESMAraPPI zero-shot benchmarking
+│   │   ├── run_train_deeparappi_nscc.pbs   # PBS: End-to-end DeepAraPPI C1 training
+│   │   ├── run_train_esmarappi_nscc.pbs    # PBS: End-to-end ESMAraPPI C1 training
+│   │   ├── run_resume_deeparappi_nscc.pbs  # PBS: Resume DeepAraPPI from Stage 3
+│   │   ├── run_batch_predict_nscc.pbs      # PBS: Single-run batch predict
+│   │   └── run_remaining_benchmarks_nscc.pbs # PBS: Remaining benchmarks
+│   ├── phase2/                         # Streaming ETL evidence normalization pipeline
+│   │   ├── combine_evidence.py         # Main streaming ETL orchestrator
+│   │   ├── validate_phase2.py          # QC gate verification (QC2.1 - QC2.10)
+│   │   ├── harmonize_assays.py         # PSI-MI and BioGRID assay harmonizer
+│   │   └── build_assay_mapping.py      # Assay taxonomy mapping generator
+│   ├── benchmarking/                   # Benchmark scripts
+│   │   ├── batch_predict.py            # Core batch inference script (combined pair cropping)
+│   │   └── evaluate_pplm.py            # Evaluation & benchmark comparison engine
 │   ├── training/                       # PPI head retraining pipeline
 │   │   ├── extract_features.py         # Stage 1: PPLM backbone → pooled feature .pkl files
 │   │   ├── train_ppi_head.py           # Stage 2: 10-fold stratified CV training
@@ -40,6 +46,7 @@ AraPPLM/
 │   └── data_preparation/
 │       ├── build_sequence_db.py        # Unified FASTA -> PKL builder
 │       ├── verify_coverage.py          # Sequence database coverage verifier
+│       ├── merge_esmarappi_sequences.py # ESMAraPPI secondary accession merger
 │       └── merge_rice_uniparc.py       # Rice UniParc merger script
 │
 ├── data/
@@ -100,7 +107,7 @@ AraPPLM/
 - [x] Implemented 10-fold classifier ensemble with symmetric pair averaging.
 
 ### Phase 2: Sequence Database Preparation ✓
-- [x] **Arabidopsis:** 100.00% sequence coverage (109,640 entries).
+- [x] **Arabidopsis:** 100.00% sequence coverage (109,994 entries).
 - [x] **Rice:** 100.00% sequence coverage (100,297 entries).
 
 ### Phase 3: DeepAraPPI Benchmark Completed ✓

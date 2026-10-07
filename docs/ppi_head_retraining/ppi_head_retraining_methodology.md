@@ -19,7 +19,7 @@ The PPLM-PPI prediction head was originally trained on human/model-organism PPI 
 | **Source** | Zheng et al., "DeepAraPPI" (The Plant Journal, 2023) |
 | **File** | `data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt` |
 | **Total pairs** | 31,284 |
-| **Positive pairs** | 2,844 (high-quality PPIs from IntAct, MIscore ≥ 0.45) |
+| **Positive pairs** | 2,844 (high-quality PPIs from BioGRID, DIP, IntAct, MINT, TAIR; HIPPIE score ≥ 0.72) |
 | **Negative pairs** | 28,440 (random non-interacting pairs) |
 | **Pos:Neg ratio** | 1:10 |
 | **Species** | *Arabidopsis thaliana* |
@@ -216,21 +216,21 @@ Training results and test-set evaluation are documented separately:
 
 | Script | Stage | Description |
 |--------|-------|-------------|
-| [`extract_features.py`](../scripts/training/extract_features.py) | 1 | Frozen PPLM backbone → pooled feature `.pkl` files |
-| [`dataset.py`](../scripts/training/dataset.py) | 2 | PyTorch Dataset for loading `.pkl` features with A↔B augmentation |
-| [`ppi_model.py`](../scripts/training/ppi_model.py) | 2 | MLP classifier architecture + evaluation metrics |
-| [`train_ppi_head.py`](../scripts/training/train_ppi_head.py) | 2 | K-fold stratified CV training loop |
-| [`select_top_models.py`](../scripts/training/select_top_models.py) | 3 | Rank by AUPRC, package top-5 into ensemble |
-| [`test_ppi_head.py`](../scripts/training/test_ppi_head.py) | 4 | Ensemble inference on held-out test sets |
-| [`evaluate_pplm.py`](../scripts/benchmarking/evaluate_pplm.py) | 5 | Metrics computation + baseline comparison |
+| [`extract_features.py`](../../scripts/training/extract_features.py) | 1 | Frozen PPLM backbone → pooled feature `.pkl` files |
+| [`dataset.py`](../../scripts/training/dataset.py) | 2 | PyTorch Dataset for loading `.pkl` features with A↔B augmentation |
+| [`ppi_model.py`](../../scripts/training/ppi_model.py) | 2 | MLP classifier architecture + evaluation metrics |
+| [`train_ppi_head.py`](../../scripts/training/train_ppi_head.py) | 2 | K-fold stratified CV training loop |
+| [`select_top_models.py`](../../scripts/training/select_top_models.py) | 3 | Rank by AUPRC, package top-5 into ensemble |
+| [`test_ppi_head.py`](../../scripts/training/test_ppi_head.py) | 4 | Ensemble inference on held-out test sets |
+| [`evaluate_pplm.py`](../../scripts/benchmarking/evaluate_pplm.py) | 5 | Metrics computation + baseline comparison |
 
 ### 7.2 PBS Job Scripts
 
 | Script | Purpose |
 |--------|---------|
-| [`run_train_deeparappi_nscc.pbs`](../scripts/run_train_deeparappi_nscc.pbs) | Full pipeline: Stages 1–5 on DeepAraPPI C1 |
-| [`run_train_esmarappi_nscc.pbs`](../scripts/run_train_esmarappi_nscc.pbs) | Full pipeline: Stages 1–5 on ESMAraPPI C1 |
-| [`run_resume_deeparappi_nscc.pbs`](../scripts/run_resume_deeparappi_nscc.pbs) | Resume from Stage 3 (model selection → evaluation) |
+| [`run_train_deeparappi_nscc.pbs`](../../scripts/hpc/run_train_deeparappi_nscc.pbs) | Full pipeline: Stages 1–5 on DeepAraPPI C1 |
+| [`run_train_esmarappi_nscc.pbs`](../../scripts/hpc/run_train_esmarappi_nscc.pbs) | Full pipeline: Stages 1–5 on ESMAraPPI C1 |
+| [`run_resume_deeparappi_nscc.pbs`](../../scripts/hpc/run_resume_deeparappi_nscc.pbs) | Resume from Stage 3 (model selection → evaluation) |
 
 ---
 
@@ -246,7 +246,7 @@ Training results and test-set evaluation are documented separately:
 
 ## References
 
-1. Liu, J., Chen, X. & Zhang, Y. PPLM: Paired Protein Language Model for Protein-Protein Interaction Prediction. *Nature Communications* (2026).
-2. Zheng, J. et al. DeepAraPPI: A Benchmark Dataset and Comprehensive Study for Arabidopsis Protein-Protein Interaction Prediction. *The Plant Journal* (2023).
+1. Liu, J., Chen, H. & Zhang, Y. A paired sequence language model for protein-protein interaction modeling. *Nature Communications* 17:3733 (2026).
+2. Zheng, J., Yang, X., Huang, Y., Yang, S., Wuchty, S. & Zhang, Z. Deep learning-assisted prediction of protein–protein interactions in Arabidopsis thaliana. *The Plant Journal* 114:984–994 (2023).
 3. Zhou, K. et al. Pre-trained protein language model sheds new light on the prediction of Arabidopsis protein-protein interactions. *Plant Methods* 19:141 (2023).
 4. Park, Y. & Marcotte, E.M. Flaws in evaluation schemes for pair-input computational predictions. *Nature Methods* 9:1134–1136 (2012).

@@ -1,0 +1,62 @@
+{
+  "timestamp_utc": "2026-10-06T10:45:08.971195+00:00",
+  "species": "Arabidopsis thaliana (taxid 3702)",
+  "provenance_standard": "Database-Only Provenance (Internal Guidelines / Holdout Flags Stripped)",
+  "filtering_rules": {
+    "IntAct": "Retain interaction_semantics == 'physical_association' (exact Rice match; exclude proximity & direct_binary; no MIscore filter)",
+    "BioGRID": "Exclude proximity and genetic interactions (retain direct_binary and physical_association)",
+    "XL_MS": "pLink 3.2 < 1% PSM FDR; physical cross-links (<35A constraint); unique pairs retained (total PSMs preserved)"
+  },
+  "evidence_table_columns_count": 48,
+  "dedup_table_columns_count": 24,
+  "filtering_reconciliation": {
+    "intact_positive_retained": 56496,
+    "biogrid_positive_retained": 68064,
+    "xlms_positive_retained": 7167,
+    "total_positive_evidence_records": 131727
+  },
+  "deduplicated_pairs_summary": {
+    "total_unique_pairs": 88340,
+    "heteromeric_pairs": 82529,
+    "homomeric_pairs": 5811,
+    "pure_protein_protein_pairs": 87885,
+    "non_protein_associated_pairs": 455,
+    "unique_proteins_all": 18469,
+    "unique_proteins_pure_protein_pairs": 18218,
+    "source_combination_breakdown": {
+      "BioGRID": 40042,
+      "IntAct": 21968,
+      "BioGRID|IntAct": 19163,
+      "PRIDE / pLink 3.2": 7167
+    }
+  },
+  "literature_provenance": {
+    "total_unique_pmids": 2494,
+    "intact_pmids_count": 609,
+    "biogrid_pmids_count": 2303,
+    "xlms_pmids_count": 1,
+    "unique_authors_count": 2830
+  },
+  "output_files": {
+    "evidence_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_evidence.tsv",
+    "evidence_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_evidence.parquet",
+    "dedup_pairs_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_pairs_deduplicated.tsv",
+    "dedup_pairs_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_pairs_deduplicated.parquet",
+    "pair_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_hippie_provenance.tsv",
+    "pair_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_hippie_provenance.parquet",
+    "evidence_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_evidence_hippie_provenance.tsv",
+    "evidence_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\arabidopsis\\ara_positive_evidence_hippie_provenance.parquet"
+  },
+  "hippie_scoring_summary": {
+    "species": "ara",
+    "total_pairs": 88340,
+    "high_confidence_count": 11559,
+    "medium_confidence_count": 76781,
+    "low_confidence_count": 0,
+    "mean_score": 0.6509,
+    "median_score": 0.6293,
+    "min_score": 0.5206,
+    "max_score": 0.9,
+    "iqr": 0.0898
+  }
+}
