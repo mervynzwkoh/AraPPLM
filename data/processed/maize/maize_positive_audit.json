@@ -1,0 +1,64 @@
+{
+  "timestamp_utc": "2026-10-07T08:43:56.050539+00:00",
+  "species_code": "MAIZE",
+  "species_common": "Maize",
+  "species_scientific": "Zea mays",
+  "taxonomy_id": 4577,
+  "provenance_standard": "Database-Only Provenance (Internal Guidelines / Holdout Flags Stripped)",
+  "filtering_rules": {
+    "IntAct": "Retain interaction_semantics in ('physical_association', 'direct_binary'); exclude colocalization",
+    "BioGRID": "Retain physical systems; exclude proximity (PCA) and genetic interactions"
+  },
+  "filtering_reconciliation": {
+    "intact_raw_records": 51009,
+    "intact_positive_retained": 51008,
+    "intact_excluded": 1,
+    "biogrid_raw_records": 18,
+    "biogrid_positive_retained": 17,
+    "biogrid_excluded": 1,
+    "total_positive_evidence_records": 51025
+  },
+  "deduplicated_pairs_summary": {
+    "total_unique_pairs": 50984,
+    "heteromeric_pairs": 50409,
+    "homomeric_pairs": 575,
+    "pure_protein_protein_pairs": 50983,
+    "nucleic_acid_associated_pairs": 1,
+    "unique_proteins_all": 14888,
+    "unique_proteins_pure_protein_pairs": 14886,
+    "evidence_count_distribution": {
+      "1": 50948,
+      "2": 33,
+      "3": 1,
+      "4": 2
+    }
+  },
+  "literature_provenance": {
+    "total_unique_pmids": 22,
+    "intact_pmids_count": 13,
+    "biogrid_pmids_count": 9,
+    "unique_authors_count": 22
+  },
+  "hippie_scoring_summary": {
+    "species": "maize",
+    "total_pairs": 50984,
+    "high_confidence_count": 6,
+    "medium_confidence_count": 50978,
+    "low_confidence_count": 0,
+    "mean_score": 0.6294,
+    "median_score": 0.6293,
+    "min_score": 0.5641,
+    "max_score": 0.7866,
+    "iqr": 0.0
+  },
+  "output_files": {
+    "evidence_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_evidence.tsv",
+    "evidence_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_evidence.parquet",
+    "dedup_pairs_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_pairs_deduplicated.tsv",
+    "dedup_pairs_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_pairs_deduplicated.parquet",
+    "pair_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_hippie_provenance.tsv",
+    "pair_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_hippie_provenance.parquet",
+    "evidence_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_evidence_hippie_provenance.tsv",
+    "evidence_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\maize\\maize_positive_evidence_hippie_provenance.parquet"
+  }
+}

@@ -34,8 +34,8 @@ conda activate PPLM_NSCC_A100
 
 echo "Python binary: $(which python)"
 
-# Ensure visualization and dimensionality reduction packages are present
-pip install --quiet umap-learn matplotlib seaborn
+# Attempt package install only if network is available (or rely on login-node installation)
+pip install --quiet umap-learn matplotlib seaborn 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
 # 3. Step 1: PCA, HDBSCAN, K-Means & UMAP Projection

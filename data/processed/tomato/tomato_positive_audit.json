@@ -1,0 +1,65 @@
+{
+  "timestamp_utc": "2026-10-07T08:43:58.377024+00:00",
+  "species_code": "TOMATO",
+  "species_common": "Tomato",
+  "species_scientific": "Solanum lycopersicum",
+  "taxonomy_id": 4081,
+  "provenance_standard": "Database-Only Provenance (Internal Guidelines / Holdout Flags Stripped)",
+  "filtering_rules": {
+    "IntAct": "Retain interaction_semantics in ('physical_association', 'direct_binary'); exclude colocalization",
+    "BioGRID": "Retain physical systems; exclude proximity (PCA) and genetic interactions"
+  },
+  "filtering_reconciliation": {
+    "intact_raw_records": 29,
+    "intact_positive_retained": 29,
+    "intact_excluded": 0,
+    "biogrid_raw_records": 141,
+    "biogrid_positive_retained": 137,
+    "biogrid_excluded": 4,
+    "total_positive_evidence_records": 166
+  },
+  "deduplicated_pairs_summary": {
+    "total_unique_pairs": 123,
+    "heteromeric_pairs": 108,
+    "homomeric_pairs": 15,
+    "pure_protein_protein_pairs": 123,
+    "nucleic_acid_associated_pairs": 0,
+    "unique_proteins_all": 61,
+    "unique_proteins_pure_protein_pairs": 61,
+    "evidence_count_distribution": {
+      "1": 95,
+      "2": 19,
+      "3": 4,
+      "4": 4,
+      "5": 1
+    }
+  },
+  "literature_provenance": {
+    "total_unique_pmids": 15,
+    "intact_pmids_count": 9,
+    "biogrid_pmids_count": 8,
+    "unique_authors_count": 16
+  },
+  "hippie_scoring_summary": {
+    "species": "tomato",
+    "total_pairs": 123,
+    "high_confidence_count": 14,
+    "medium_confidence_count": 109,
+    "low_confidence_count": 0,
+    "mean_score": 0.6559,
+    "median_score": 0.6293,
+    "min_score": 0.5641,
+    "max_score": 0.8868,
+    "iqr": 0.0
+  },
+  "output_files": {
+    "evidence_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_evidence.tsv",
+    "evidence_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_evidence.parquet",
+    "dedup_pairs_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_pairs_deduplicated.tsv",
+    "dedup_pairs_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_pairs_deduplicated.parquet",
+    "pair_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_hippie_provenance.tsv",
+    "pair_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_hippie_provenance.parquet",
+    "evidence_hippie_provenance_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_evidence_hippie_provenance.tsv",
+    "evidence_hippie_provenance_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\processed\\tomato\\tomato_positive_evidence_hippie_provenance.parquet"
+  }
+}

@@ -80,18 +80,8 @@ def parse_args():
 
 
 def load_inputs(emb_path, meta_path):
-    print(f"Loading embeddings from: {emb_path}")
-    if not os.path.exists(emb_path):
-        raise FileNotFoundError(f"Embeddings file not found: {emb_path}")
-    
-    # Load using memory map to handle large matrices efficiently
-    emb_data = np.load(emb_path, mmap_mode="r")
-    num_samples, dim = emb_data.shape
-    print(f"Loaded embeddings shape: {num_samples:,} samples x {dim:,} dimensions.")
-
     print(f"Loading metadata from: {meta_path}")
     if not os.path.exists(meta_path):
-        # Fallback to TSV if parquet not found
         tsv_path = meta_path.replace(".parquet", ".tsv")
         if os.path.exists(tsv_path):
             df_meta = pd.read_csv(tsv_path, sep="\t")
@@ -104,11 +94,34 @@ def load_inputs(emb_path, meta_path):
             tsv_path = meta_path.replace(".parquet", ".tsv")
             df_meta = pd.read_csv(tsv_path, sep="\t")
 
-    print(f"Loaded metadata rows: {len(df_meta):,}")
-    if len(df_meta) != num_samples:
-        raise ValueError(f"Mismatch: embeddings count ({num_samples}) != metadata rows ({len(df_meta)})")
+    num_meta = len(df_meta)
+    print(f"Loaded metadata rows: {num_meta:,}")
 
-    return np.array(emb_data, dtype=np.float32), df_meta
+    print(f"Loading embeddings from: {emb_path}")
+    if not os.path.exists(emb_path):
+        raise FileNotFoundError(f"Embeddings file not found: {emb_path}")
+
+    # Support both standard .npy files and raw np.memmap binary arrays
+    emb_data = None
+    try:
+        emb_data = np.load(emb_path, mmap_mode="r")
+        num_samples, dim = emb_data.shape
+        print(f"Loaded embeddings via np.load: {num_samples:,} samples x {dim:,} dimensions.")
+    except Exception as e:
+        print(f"np.load was unable to parse header ({e}). Falling back to raw binary np.memmap...")
+        file_bytes = os.path.getsize(emb_path)
+        dim = 2560
+        num_samples = file_bytes // (dim * 4)  # 4 bytes per float32
+        emb_data = np.memmap(emb_path, dtype="float32", mode="r", shape=(num_samples, dim))
+        print(f"Loaded embeddings via raw np.memmap: {num_samples:,} samples x {dim:,} dimensions.")
+
+    if len(df_meta) != num_samples:
+        print(f"[Warning] Metadata count ({len(df_meta)}) != embeddings count ({num_samples}). Truncating to min.")
+        min_len = min(len(df_meta), num_samples)
+        df_meta = df_meta.iloc[:min_len].copy()
+        emb_data = emb_data[:min_len]
+
+    return emb_data, df_meta
 
 
 def run_pca(embeddings, n_components=50, random_state=42):

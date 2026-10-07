@@ -167,9 +167,15 @@ def compute_hippie_score(n_s, n_t, n_o):
 
 
 def run_hippie_pipeline(data_dir=None, species="rice"):
-    prefix = "ara" if str(species).lower() in ("ara", "arabidopsis") else "rice"
+    species_lower = str(species).lower()
+    if species_lower in ("ara", "arabidopsis"):
+        prefix = "ara"
+        sub_folder = "arabidopsis"
+    else:
+        prefix = species_lower
+        sub_folder = species_lower
+
     if data_dir is None:
-        sub_folder = "arabidopsis" if prefix == "ara" else "rice"
         data_dir = os.path.join(WORKSPACE_ROOT, "data", "processed", sub_folder)
 
     evidence_tsv = os.path.join(data_dir, f"{prefix}_positive_evidence.tsv")
@@ -383,7 +389,7 @@ def run_hippie_pipeline(data_dir=None, species="rice"):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Compute HIPPIE Scores for PPI interactome datasets")
-    parser.add_argument("--species", choices=["rice", "ara", "arabidopsis"], default="rice", help="Species code (default: rice)")
+    parser.add_argument("--species", default="rice", help="Species code (e.g., maize, tomato, soybean, rice, ara)")
     parser.add_argument("--data-dir", default=None, help="Directory containing master files")
     args = parser.parse_args()
 
