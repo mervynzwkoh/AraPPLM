@@ -1,0 +1,3 @@
+UniProt Database Access Terms & Conditions
+Notification: Please check the terms at https://www.uniprot.org/help/license and https://www.uniprot.org/help/api_queries.
+Recorded at: 2026-10-21T05:32:00Z

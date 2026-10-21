@@ -117,11 +117,11 @@ qsub scripts/hpc/run_train_esmarappi_nscc.pbs
 | [project_overview.md](docs/project_overview.md) | High-level synthesis of benchmark results and methodology |
 | [data_processing_pipeline.md](docs/data_processing_pipeline.md) | Sequence retrieval & database construction |
 | [plant-pplm-methodology.md](docs/plant-pplm-methodology.md) | Proposed fine-tuning methodology (LoRA, focal loss) |
-| **Dataset Construction (Phase 1 & Phase 2)** | |
-| [P1_source_freeze_report.md](docs/dataset_construction/P1_source_freeze_report.md) | Phase 1 raw data freeze & provenance registry |
-| [P2_evidence_normalization_report.md](docs/dataset_construction/P2_evidence_normalization_report.md) | Phase 2 normalized canonical Parquet warehouse audit |
-| [ara_data_breakdown.md](docs/dataset_construction/ara_data_breakdown.md) | Arabidopsis source-by-source interaction breakdown |
-| [rice_data_breakdown.md](docs/dataset_construction/rice_data_breakdown.md) | Rice source-by-source interaction breakdown |
+| **Dataset Construction (Stage 1: Verified Positive Pairs)** | |
+| [01_arabidopsis_positive_pairs.md](docs/dataset_construction/01_positive_pairs/01_arabidopsis_positive_pairs.md) | Verified Arabidopsis positive interactions (87,673 pure PPI pairs) |
+| [02_maize_positive_pairs.md](docs/dataset_construction/01_positive_pairs/02_maize_positive_pairs.md) | Verified Maize positive interactions (50,984 pairs) |
+| [03_rice_tomato_soybean_positive_pairs.md](docs/dataset_construction/01_positive_pairs/03_rice_tomato_soybean_positive_pairs.md) | Verified Rice (998 / 667 PPI), Tomato (123), and Soybean (48) pairs |
+| [docs/dataset_construction/README.md](docs/dataset_construction/README.md) | Dataset construction pipeline overview & roadmap |
 | **Head Retraining** | |
 | [ppi_head_retraining_methodology.md](docs/ppi_head_retraining/ppi_head_retraining_methodology.md) | Retraining technical methodology, design decisions & training protocol |
 | [ppi_head_retraining_walkthrough.md](docs/ppi_head_retraining/ppi_head_retraining_walkthrough.md) | Step-by-step run instructions for HPC training |

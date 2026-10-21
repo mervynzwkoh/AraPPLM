@@ -17,11 +17,13 @@ ENV/
 # Large sequence & raw data files (reproducible — see docs/data_processing_pipeline.md)
 data/raw/
 data/arabidopsis/uniprot_arabidopsis.fasta
+data/arabidopsis/uniprot_arabidopsis_stream.tsv.gz
 data/arabidopsis/*.pkl
 data/rice/uniprot_rice.fasta
 !data/rice/missing_rice.fasta
 data/rice/*.pkl
 data/**/*.pkl
+data/dataset_construction/**/*_positive_evidence.tsv
 *.parquet
 *.parquet.tmp
 *.jsonl

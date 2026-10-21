@@ -1,0 +1,60 @@
+{
+  "timestamp_utc": "2026-10-19T22:50:00.000000+00:00",
+  "species": "Arabidopsis thaliana (taxid 3702)",
+  "provenance_standard": "Database-Only Provenance (PCA strictly retained across all databases; IntAct core physical set included)",
+  "filtering_rules": {
+    "IntAct": "Core physical interactions (MI:0915 physical association, MI:0914 association, MI:0407 direct interaction, MI:0217 physical/phosphorylation); strictly retain PCA (MI:0112 split-ubiquitin, MI:0809 BiFC, MI:1204/MI:1037 split-luciferase, MI:0090); strictly exclude proximity (MI:2364, MI:0403, MI:1314 BioID); strictly exclude non-protein interactors (DNA, RNA, small molecules, gene IDs); strictly exclude cross-species interactions (taxid != 3702)",
+    "BioGRID": "Physical interactions (sys_type == 'physical'); strictly retain PCA; strictly exclude Proximity Label-MS, Co-localization, genetic interactions, RNA complexes, and cross-species interactions (taxid != 3702)",
+    "XL_MS": "pLink 3.2 < 1% PSM FDR; physical cross-links (<35A Euclidean constraint); unique pairs retained (total PSMs preserved)",
+    "STRING": "STRING v12.0 physical links full: direct experiments > 0; strictly exclude transferred interologs (experiments == 0 and experiments_transferred > 0); exclude non-experimental links; consolidate to unique undirected pairs"
+  },
+  "evidence_table_columns_count": 48,
+  "dedup_table_columns_count": 24,
+  "filtering_reconciliation": {
+    "intact_positive_retained": 55404,
+    "intact_cross_species_excluded": 1961,
+    "biogrid_positive_retained": 82717,
+    "biogrid_cross_species_excluded": 355,
+    "xlms_positive_retained": 7167,
+    "string_positive_retained": 61408,
+    "total_positive_evidence_records": 206730,
+    "total_pure_protein_evidence_records": 206696
+  },
+  "deduplicated_pairs_summary": {
+    "total_unique_pairs": 120873,
+    "heteromeric_pairs": 115012,
+    "homomeric_pairs": 5861,
+    "pure_protein_protein_pairs": 120873,
+    "unique_proteins_all": 20836,
+    "source_combination_breakdown": {
+      "BioGRID": 31915,
+      "BioGRID|STRING": 24448,
+      "STRING": 17387,
+      "IntAct": 14648,
+      "BioGRID|IntAct|STRING": 10484,
+      "IntAct|STRING": 9089,
+      "PRIDE / pLink 3.2": 7053,
+      "BioGRID|IntAct": 5735,
+      "BioGRID|PRIDE / pLink 3.2": 114
+    }
+  },
+  "hippie_scoring_summary": {
+    "high_quality_count": 30705,
+    "high_medium_count": 96879,
+    "low_quality_count": 23994
+  },
+  "output_files": {
+    "evidence_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_evidence.tsv",
+    "evidence_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_evidence.parquet",
+    "dedup_pairs_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_deduplicated.tsv",
+    "dedup_pairs_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_deduplicated.parquet",
+    "high_only_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_only.tsv",
+    "high_only_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_only.parquet",
+    "high_only_hetero_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_only_hetero.tsv",
+    "high_only_hetero_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_only_hetero.parquet",
+    "high_medium_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_medium.tsv",
+    "high_medium_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_medium.parquet",
+    "high_medium_hetero_tsv": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_medium_hetero.tsv",
+    "high_medium_hetero_parquet": "C:\\Users\\User\\OneDrive\\Desktop\\NUS\\AIS\\AIS5281\\AraPPLM\\data\\dataset_construction\\01_positive_pairs\\arabidopsis\\ara_positive_pairs_high_medium_hetero.parquet"
+  }
+}
