@@ -1,0 +1,47 @@
+#!/bin/bash
+# ==============================================================================
+# submit_pair_clustering_hpc.pbs
+# ==============================================================================
+# PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
+# Executes MMseqs2 all-vs-all search and pair-level redundancy parameter sweep.
+#
+# Submit with:
+#   qsub scripts/dataset_construction/submit_pair_clustering_hpc.pbs
+#
+# Check status:
+#   qstat -u $USER
+# ==============================================================================
+
+#PBS -N ara_ppi_clustering
+#PBS -q normal
+#PBS -l select=1:ncpus=16:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o logs_pair_clustering.log
+
+# Move to job submission directory
+cd "${PBS_O_WORKDIR:-$PWD}"
+
+echo "========================================================================"
+echo "Job started on: $(hostname) at $(date)"
+echo "Working directory: $(pwd)"
+echo "Job ID: ${PBS_JOBID:-LOCAL}"
+echo "========================================================================"
+
+# Load modules (modify according to your HPC cluster environment)
+module load mmseqs2 2>/dev/null || module load mmseqs 2>/dev/null || true
+module load python/3.10 2>/dev/null || module load python/3.8 2>/dev/null || module load miniconda3 2>/dev/null || true
+
+# Check python version and mmseqs
+which mmseqs || echo "Warning: mmseqs not in current path, checking environment..."
+which python3 || echo "Warning: python3 not in current path..."
+
+# Set number of threads to match ncpus requested
+export THREADS=16
+
+# Execute pipeline script
+bash scripts/dataset_construction/run_pair_clustering_pipeline.sh
+
+echo "========================================================================"
+echo "Job completed at $(date)"
+echo "========================================================================"
