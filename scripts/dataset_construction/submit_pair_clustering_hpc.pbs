@@ -15,8 +15,8 @@
 #PBS -N ara_ppi_clustering
 #PBS -P personal-e0969134
 #PBS -q normal
-#PBS -l select=1:ncpus=16:mem=64gb
-#PBS -l walltime=03:00:00
+#PBS -l select=1:ncpus=16:mem=32gb
+#PBS -l walltime=01:00:00
 #PBS -j oe
 #PBS -o logs_pair_clustering.log
 
@@ -30,7 +30,12 @@ echo "Job ID: ${PBS_JOBID:-LOCAL}"
 echo "========================================================================"
 
 # Load modules / Conda environment
-# 1. Initialize conda (checking NSCC paths) and activate python11
+# 1. Source user bashrc to inherit conda init
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc"
+fi
+
+# 2. Source conda profile script if available
 if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
     source "$HOME/miniconda3/etc/profile.d/conda.sh"
 elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
@@ -41,12 +46,26 @@ else
     module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
 fi
 
-conda activate python11 2>/dev/null || echo "Notice: conda activate python11 returned non-zero, checking environment..."
-module load mmseqs2 2>/dev/null || module load mmseqs 2>/dev/null || true
+# 3. Activate conda environment
+conda activate python11 2>/dev/null || true
+
+# 4. Fallback: Directly prepend python11 bin directory to PATH
+for env_dir in \
+    "$CONDA_PREFIX/bin" \
+    "$HOME/.conda/envs/python11/bin" \
+    "$HOME/miniconda3/envs/python11/bin" \
+    "$HOME/miniforge3/envs/python11/bin"; do
+    if [ -f "${env_dir}/mmseqs" ]; then
+        echo "Found mmseqs at: ${env_dir}/mmseqs"
+        export PATH="${env_dir}:$PATH"
+        break
+    fi
+done
 
 # Diagnostics
-which mmseqs || echo "Warning: mmseqs not in current path, checking environment..."
-which python3 || echo "Warning: python3 not in current path..."
+echo "Current PATH: $PATH"
+which mmseqs || echo "ERROR: mmseqs still not found in PATH"
+which python3 || echo "ERROR: python3 not found in PATH"
 python3 --version 2>/dev/null || true
 
 # Set number of threads to match ncpus requested
