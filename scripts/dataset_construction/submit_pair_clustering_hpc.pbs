@@ -15,8 +15,8 @@
 #PBS -N ara_ppi_clustering
 #PBS -P personal-e0969134
 #PBS -q normal
-#PBS -l select=1:ncpus=16:mem=32gb
-#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=16:mem=64gb
+#PBS -l walltime=03:00:00
 #PBS -j oe
 #PBS -o logs_pair_clustering.log
 
