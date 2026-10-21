@@ -132,14 +132,38 @@ def load_positive_pairs(pairs_tsv, metadata_map, fasta_lengths):
 def load_raw_alignments(alignments_tsv):
     """
     Parse MMseqs2 convertalis TSV once into memory.
-    Expected columns: query, target, fident, ..., evalue, ..., qcov, tcov
+    Supports files both with or without a header line.
+    Expected columns: query, target, fident, alnlen, mismatch, gapopen, qstart, qend, tstart, tend, evalue, bits, qlen, tlen, qcov, tcov
     """
     print(f"Loading MMseqs2 alignments from: {alignments_tsv}")
     start_t = time.time()
     alignments = []
     
+    if not os.path.isfile(alignments_tsv):
+        print(f"Error: Alignments file not found: {alignments_tsv}", file=sys.stderr)
+        return alignments
+
+    column_names = [
+        "query", "target", "fident", "alnlen", "mismatch", "gapopen",
+        "qstart", "qend", "tstart", "tend", "evalue", "bits",
+        "qlen", "tlen", "qcov", "tcov"
+    ]
+    
     with open(alignments_tsv, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter="\t")
+        first_line = f.readline()
+        if not first_line:
+            print("Warning: Alignments file is empty!")
+            return alignments
+        
+        tokens = [t.strip().lower() for t in first_line.split("\t")]
+        has_header = "query" in tokens or "target" in tokens
+        
+        f.seek(0)
+        if has_header:
+            reader = csv.DictReader(f, delimiter="\t")
+        else:
+            reader = csv.DictReader(f, fieldnames=column_names, delimiter="\t")
+
         for row in reader:
             q = row.get("query", "").strip()
             t = row.get("target", "").strip()
@@ -176,6 +200,8 @@ def load_raw_alignments(alignments_tsv):
             alignments.append((q, t, fident, qcov, tcov, evalue))
             
     print(f"Loaded {len(alignments):,} raw alignments in {time.time() - start_t:.2f}s")
+    if len(alignments) == 0:
+        print("WARNING: Zero alignments were loaded! Check if the file is empty or formatted properly.")
     return alignments
 
 
