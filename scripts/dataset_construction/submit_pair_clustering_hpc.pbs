@@ -46,18 +46,30 @@ else
     module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
 fi
 
-# 3. Activate conda environment
-conda activate python11 2>/dev/null || true
-
-# 4. Fallback: Directly prepend python11 bin directory to PATH
+# 3. Add mmseqs2_env bin directory to PATH (provides mmseqs binary)
+conda activate mmseqs2_env 2>/dev/null || true
 for env_dir in \
-    "$CONDA_PREFIX/bin" \
-    "$HOME/.conda/envs/python11/bin" \
-    "$HOME/miniconda3/envs/python11/bin" \
-    "$HOME/miniforge3/envs/python11/bin"; do
+    "$HOME/.conda/envs/mmseqs2_env/bin" \
+    "$HOME/miniconda3/envs/mmseqs2_env/bin" \
+    "$HOME/miniforge3/envs/mmseqs2_env/bin" \
+    "/app1/common/miniconda3/envs/mmseqs2_env/bin"; do
     if [ -f "${env_dir}/mmseqs" ]; then
         echo "Found mmseqs at: ${env_dir}/mmseqs"
         export PATH="${env_dir}:$PATH"
+        break
+    fi
+done
+
+# 4. Activate python11 (provides Python 3.11 environment)
+conda activate python11 2>/dev/null || true
+for py_dir in \
+    "$HOME/.conda/envs/python11/bin" \
+    "$HOME/miniconda3/envs/python11/bin" \
+    "$HOME/miniforge3/envs/python11/bin" \
+    "/app1/common/miniconda3/envs/python11/bin"; do
+    if [ -f "${py_dir}/python3" ]; then
+        echo "Found python3 at: ${py_dir}/python3"
+        export PATH="${py_dir}:$PATH"
         break
     fi
 done
