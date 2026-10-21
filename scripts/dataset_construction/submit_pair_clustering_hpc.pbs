@@ -13,6 +13,7 @@
 # ==============================================================================
 
 #PBS -N ara_ppi_clustering
+#PBS -P personal-e0969134
 #PBS -q normal
 #PBS -l select=1:ncpus=16:mem=32gb
 #PBS -l walltime=01:00:00
@@ -28,13 +29,25 @@ echo "Working directory: $(pwd)"
 echo "Job ID: ${PBS_JOBID:-LOCAL}"
 echo "========================================================================"
 
-# Load modules (modify according to your HPC cluster environment)
-module load mmseqs2 2>/dev/null || module load mmseqs 2>/dev/null || true
-module load python/3.10 2>/dev/null || module load python/3.8 2>/dev/null || module load miniconda3 2>/dev/null || true
+# Load modules / Conda environment
+# 1. Initialize conda (checking NSCC paths) and activate python11
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+else
+    module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
+fi
 
-# Check python version and mmseqs
+conda activate python11 2>/dev/null || echo "Notice: conda activate python11 returned non-zero, checking environment..."
+module load mmseqs2 2>/dev/null || module load mmseqs 2>/dev/null || true
+
+# Diagnostics
 which mmseqs || echo "Warning: mmseqs not in current path, checking environment..."
 which python3 || echo "Warning: python3 not in current path..."
+python3 --version 2>/dev/null || true
 
 # Set number of threads to match ncpus requested
 export THREADS=16
