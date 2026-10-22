@@ -1,0 +1,35 @@
+#!/bin/bash
+# ==============================================================================
+# submit_cluster_density_hpc.pbs
+# ==============================================================================
+# PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
+# Executes intra-cluster pair similarity and clique density evaluation.
+#
+# Submit with:
+#   qsub scripts/dataset_construction/submit_cluster_density_hpc.pbs
+#
+# Check status:
+#   qstat -u $USER
+# ==============================================================================
+
+#PBS -N ara_ppi_density
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l walltime=00:30:00
+#PBS -j oe
+#PBS -o logs_cluster_density.log
+
+cd "${PBS_O_WORKDIR:-$PWD}"
+
+echo "========================================================================"
+echo "Job started on: $(hostname) at $(date)"
+echo "Working directory: $(pwd)"
+echo "Job ID: ${PBS_JOBID:-LOCAL}"
+echo "========================================================================"
+
+bash scripts/dataset_construction/run_cluster_density_hpc.sh
+
+echo "========================================================================"
+echo "Job completed at $(date)"
+echo "========================================================================"
