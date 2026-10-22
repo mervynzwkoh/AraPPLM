@@ -45,6 +45,7 @@ data/dataset_construction/03_homology_clustering/**/mmseqs_db/
 *.npz
 *.h5
 *.hdf5
+*.tar.gz
 
 # Intermediate and processed bulky datasets (reproducible via ETL pipeline)
 data/interim/
