@@ -11,7 +11,7 @@
 #   bash scripts/dataset_construction/run_cluster_density_hpc.sh
 # ==============================================================================
 
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -21,14 +21,15 @@ echo "========================================================================"
 echo "    AraPPLM: Evaluating Intra-Cluster Pair Similarity & Clique Density  "
 echo "========================================================================"
 
-# Sourcing conda/python if available
+# Sourcing conda/python if available (disable nounset to avoid system /etc/bashrc unbound variable errors)
+set +u 2>/dev/null || true
 if [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc"
+    source "$HOME/.bashrc" 2>/dev/null || true
 fi
 if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+    source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
 fi
 
 conda activate python11 2>/dev/null || true
@@ -50,7 +51,7 @@ fi
 
 ALN_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv"
 MAPPINGS_DIR="data/dataset_construction/03_homology_clustering/arabidopsis/mappings"
-SUMMARY_MD="data/dataset_construction/03_homology_clustering/arabidopsis/summary_clustering_metrics.md"
+SUMMARY_MD="docs/dataset_construction/03_homology_clustering/summary_clustering_metrics.md"
 OUTPUT_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_metrics.tsv"
 
 if [ ! -f "${ALN_TSV}" ]; then
