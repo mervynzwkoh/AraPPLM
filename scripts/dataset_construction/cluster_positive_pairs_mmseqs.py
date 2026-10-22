@@ -17,7 +17,7 @@ Usage:
         --alignments_tsv data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv \\
         --theta 0.40 --cmin 0.50
 
-    # Full multi-parameter grid sweep (theta in [0.40, 0.70] x cmin in [0.40, 0.50, 0.70]):
+    # Full multi-parameter grid sweep (theta in [0.40, 0.70, 0.90] x cmin in [0.50, 0.70, 0.80, 0.90]):
     python3 cluster_positive_pairs_mmseqs.py \\
         --pairs_tsv data/dataset_construction/01_positive_pairs/arabidopsis/ara_positive_pairs_high_only_hetero.tsv \\
         --alignments_tsv data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv \\
@@ -482,9 +482,14 @@ def main():
                         help="Path to FASTA for sequence length lookup")
     parser.add_argument("--output_dir", type=str, default="data/dataset_construction/03_homology_clustering/arabidopsis",
                         help="Output directory")
-    parser.add_argument("--theta", type=float, default=0.40, help="Sequence identity threshold (default: 0.40)")
-    parser.add_argument("--cmin", type=float, default=0.50, help="Alignment coverage threshold (default: 0.50)")
-    parser.add_argument("--sweep", action="store_true", help="Run full parameter grid sweep: theta in [0.40, 0.70] x cmin in [0.40, 0.50, 0.70]")
+    parser.add_argument("--theta", type=float, default=0.40, help="Sequence identity threshold for single-run (default: 0.40)")
+    parser.add_argument("--cmin", type=float, default=0.50, help="Alignment coverage threshold for single-run (default: 0.50)")
+    parser.add_argument("--thetas", type=float, nargs="+", default=[0.40, 0.70, 0.90],
+                        help="List of sequence identity thresholds to sweep (default: 0.40 0.70 0.90)")
+    parser.add_argument("--cmins", type=float, nargs="+", default=[0.50, 0.70, 0.80, 0.90],
+                        help="List of coverage thresholds to sweep (default: 0.50 0.70 0.80 0.90)")
+    parser.add_argument("--sweep", action="store_true",
+                        help="Run full parameter grid sweep across specified --thetas and --cmins")
     
     args = parser.parse_args()
 
@@ -540,15 +545,10 @@ def main():
 
     # 3. Determine run grid
     if args.sweep:
-        grid = [
-            (0.40, 0.40),
-            (0.40, 0.50),
-            (0.40, 0.70),
-            (0.70, 0.40),
-            (0.70, 0.50),
-            (0.70, 0.70),
-        ]
+        grid = [(t, c) for t in args.thetas for c in args.cmins]
         print(f"\n--- Starting Parameter Sweep Across {len(grid)} Grid Points ---")
+        print(f"    Thetas (Identity): {args.thetas}")
+        print(f"    Cmins  (Coverage): {args.cmins}")
     else:
         grid = [(args.theta, args.cmin)]
 

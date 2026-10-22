@@ -74,16 +74,22 @@ Thus, $P_j$ must belong to $\left( \bigcup_{X \in \mathcal{H}(A)} \text{Pairs}(X
 
 ## 4. Parameter Sweep Grid
 
-The pipeline evaluates 6 combinations across sequence identity and alignment coverage:
+The pipeline evaluates 12 combinations across sequence identity ($\theta \in \{0.40, 0.70, 0.90\}$) and alignment coverage ($c_{\min} \in \{0.50, 0.70, 0.80, 0.90\}$):
 
 | Sequence Identity ($\theta$) | Coverage ($c_{\min}$) | Benchmark Purpose |
 |:---:|:---:|---|
-| **0.40** | **0.40** | Permissive coverage benchmark with 40% identity fold-level cutoff |
-| **0.40** | **0.50** | **Primary Recommended Core Benchmark**: 40% identity, 50% domain-level coverage |
-| **0.40** | **0.70** | Stringent coverage benchmark (requires 70% domain overlap) |
-| **0.70** | **0.40** | Permissive coverage duplicate gene / paralog removal |
-| **0.70** | **0.50** | **Relaxed Paralog Benchmark**: Prunes recent WGD gene duplicates while retaining family diversity |
-| **0.70** | **0.70** | Stringent coverage paralog removal |
+| **0.40** | **0.50** | **Primary Recommended Core Benchmark**: 40% identity, 50% domain-level coverage (eliminates fold homology) |
+| **0.40** | **0.70** | Stringent coverage fold-level benchmark (requires 70% domain overlap) |
+| **0.40** | **0.80** | High-coverage fold-level benchmark (requires 80% domain overlap) |
+| **0.40** | **0.90** | Near full-length fold-level benchmark |
+| **0.70** | **0.50** | **Relaxed Paralog Benchmark**: Prunes recent WGD duplicate pairs while retaining family diversity |
+| **0.70** | **0.70** | Stringent coverage paralog benchmark |
+| **0.70** | **0.80** | High-coverage paralog benchmark |
+| **0.70** | **0.90** | Near full-length paralog benchmark |
+| **0.90** | **0.50** | Strict sequence identity with domain coverage (near-identical isoforms/alleles) |
+| **0.90** | **0.70** | High-stringency sequence identity with 70% coverage |
+| **0.90** | **0.80** | Near-duplicate interaction removal with 80% coverage |
+| **0.90** | **0.90** | **Near-Identity Deduplication**: Identical/near-identical interaction deduplication (≥90% id, ≥90% cov) |
 
 ---
 

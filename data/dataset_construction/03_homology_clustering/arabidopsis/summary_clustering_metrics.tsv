@@ -1,0 +1,7 @@
+Identity_Threshold_theta	Coverage_Threshold_cmin	Total_Input_Pairs	Representative_Pairs	Unique_Proteins_Kept	Redundancy_Removed_Pct	Total_Clusters	Avg_Cluster_Size	Max_Cluster_Size	Min_Cluster_Size	Min_Non_Singleton_Size	Singletons_Count	Multi_Pair_Clusters	Elapsed_Seconds
+0.40	0.40	30376	19333	8137	36.35%	19333	1.571	155	1	2	15101	4232	1.01s
+0.40	0.50	30376	19939	8177	34.36%	19939	1.523	115	1	2	15778	4161	0.86s
+0.40	0.70	30376	20798	8256	31.53%	20798	1.461	115	1	2	16707	4091	0.65s
+0.70	0.40	30376	26088	8611	14.12%	26088	1.164	52	1	2	23153	2935	0.33s
+0.70	0.50	30376	26170	8618	13.85%	26170	1.161	52	1	2	23266	2904	0.33s
+0.70	0.70	30376	26307	8623	13.40%	26307	1.155	52	1	2	23461	2846	0.33s

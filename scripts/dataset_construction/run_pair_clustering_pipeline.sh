@@ -7,9 +7,9 @@
 # Steps:
 #   1. Runs MMseqs2 all-vs-all search on unique proteins (one-time permissive run)
 #   2. Exports tabular alignment metrics (identity, coverage, evalue)
-#   3. Runs Python multi-parameter sweep across:
-#      - theta in [0.40, 0.70]
-#      - cmin in [0.40, 0.50, 0.70]
+#   3. Runs Python multi-parameter sweep across 12 combinations:
+#      - theta in [0.40, 0.70, 0.90]
+#      - cmin in [0.50, 0.70, 0.80, 0.90]
 #   4. Generates representative datasets, cluster mappings, and summary metrics.
 #
 # Usage:
@@ -119,6 +119,8 @@ ${PYTHON_CMD} scripts/dataset_construction/cluster_positive_pairs_mmseqs.py \
     --metadata_tsv "${METADATA_TSV}" \
     --fasta "${INPUT_FASTA}" \
     --output_dir "${OUT_DIR}" \
+    --thetas 0.40 0.70 0.90 \
+    --cmins 0.50 0.70 0.80 0.90 \
     --sweep
 
 echo ""
