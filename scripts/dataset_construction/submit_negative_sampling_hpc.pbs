@@ -42,32 +42,63 @@ if [ -f "$HOME/.bashrc" ]; then
 fi
 
 if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+    source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 else
     module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
 fi
 
-conda activate python11 2>/dev/null || true
-
-# Verify python binary
-PYTHON_BIN="python3"
-for py_dir in \
-    "$HOME/.conda/envs/python11/bin" \
-    "$HOME/miniconda3/envs/python11/bin" \
-    "$HOME/miniforge3/envs/python11/bin" \
-    "/app1/common/miniconda3/envs/python11/bin"; do
-    if [ -f "${py_dir}/python3" ]; then
-        PYTHON_BIN="${py_dir}/python3"
-        echo "Using explicit Python: ${PYTHON_BIN}"
+# Attempt to activate candidate environments
+TARGET_ENV="${CONDA_ENV_NAME:-${CONDA_DEFAULT_ENV:-python11}}"
+ENV_ACTIVATED="false"
+for env_name in "$TARGET_ENV" python11 PPLM_NSCC_A100 base; do
+    if [ -n "$env_name" ] && conda activate "$env_name" 2>/dev/null; then
+        echo "Successfully activated conda environment: $env_name"
+        ENV_ACTIVATED="true"
         break
     fi
 done
 
-echo "Python version: $("${PYTHON_BIN}" --version)"
+# Resolve python binary that has numpy and pyarrow
+PYTHON_BIN="$(which python3 2>/dev/null || which python 2>/dev/null || echo "python3")"
+
+# If current python cannot import numpy, scan all conda environments on disk
+if ! "${PYTHON_BIN}" -c "import numpy" 2>/dev/null; then
+    echo "Warning: Current Python (${PYTHON_BIN}) cannot import numpy. Searching all conda environments..."
+    for candidate in \
+        ${CONDA_PREFIX:+"${CONDA_PREFIX}/bin/python3"} \
+        "$HOME/.conda/envs/"*"/bin/python3" \
+        "$HOME/miniconda3/envs/"*"/bin/python3" \
+        "$HOME/miniforge3/envs/"*"/bin/python3" \
+        "/app1/common/miniconda3/envs/"*"/bin/python3" \
+        "$HOME/miniconda3/bin/python3" \
+        "$HOME/miniforge3/bin/python3"; do
+        if [ -x "$candidate" ] && "$candidate" -c "import numpy" 2>/dev/null; then
+            PYTHON_BIN="$candidate"
+            echo "Auto-detected working Python with numpy at: ${PYTHON_BIN}"
+            break
+        fi
+    done
+fi
+
+echo "Selected Python binary: ${PYTHON_BIN}"
+echo "Python version: $("${PYTHON_BIN}" --version 2>&1)"
+
+# Pre-flight check for required packages
+if ! "${PYTHON_BIN}" -c "import numpy; import pyarrow" 2>/dev/null; then
+    echo "========================================================================"
+    echo "ERROR: The selected Python (${PYTHON_BIN}) is missing 'numpy' or 'pyarrow'."
+    echo "Available Conda environments on this machine:"
+    conda env list 2>/dev/null || which -a python3
+    echo "To specify your environment when submitting, run:"
+    echo "  qsub -v CONDA_ENV_NAME=YOUR_ENV_NAME scripts/dataset_construction/submit_negative_sampling_hpc.pbs"
+    echo "========================================================================"
+    exit 1
+fi
+echo "Pre-flight check passed: numpy and pyarrow are available."
 
 # Create output directories
 mkdir -p data/dataset_construction/02_negative_sampling/candidates
