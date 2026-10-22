@@ -1,25 +1,22 @@
-#!/usr/bin/env bash
 #!/usr/bin/env python3
 """
 evaluate_cluster_density.py
 ===========================
-Calculates the intra-cluster pair similarity and clique density metric f_k(theta)
-for the 20 largest clusters across all identity thresholds (0.40, 0.70) and coverage
-thresholds (0.50, 0.70, 0.80, 0.90).
+Calculates intra-cluster pair similarity, clique density f_k(theta), and
+representative-to-member similarity for the 20 largest clusters across all
+identity thresholds (0.40, 0.70) and coverage thresholds (0.50, 0.70, 0.80, 0.90).
 
-Metric:
-    f_k(theta) = #{ (P_i, P_j) : S(P_i, P_j) >= theta } / binom(n_k, 2)
+Metrics Evaluated:
+1. Intra-Cluster Pairwise Similarity (All-vs-All among members, binom(n_k, 2) comparisons):
+   - Clique density: f_k(theta) = #{ (P_i, P_j) : S(P_i, P_j) >= theta } / binom(n_k, 2)
+   - Minimum pair similarity: min_{i < j} S(P_i, P_j)
+   - Mean and median pair similarity within each cluster
 
-where:
-    - n_k is the number of interaction pairs in cluster k
-    - S(P_i, P_j) = max[ min(s(A,C), s(B,D)), min(s(A,D), s(B,C)) ]
-    - binom(n_k, 2) = n_k * (n_k - 1) / 2 is total distinct pairwise comparisons
+2. Representative-to-Member Similarity (1-to-All from P_rep to members, n_k - 1 comparisons):
+   - Minimum representative similarity: min_{P_i != P_rep} S(P_rep, P_i)
+   - Mean representative similarity: mean_{P_i != P_rep} S(P_rep, P_i)
 
-Also calculates:
-    - Minimum direct pair similarity: min_{i < j} S(P_i, P_j)
-    - Mean and median pair similarity within each cluster
-
-All outputs are written to the data directory in Markdown and TSV formats:
+Outputs are written strictly to the data directory in Markdown and TSV formats:
     - data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_report.md
     - data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_metrics.tsv
 """
@@ -150,6 +147,7 @@ def compute_pair_sim(p_i, p_j, sim_dict):
 def analyze_clusters_for_condition(mapping_tsv, sim_dict, theta, cmin, top_n=20):
     """
     Analyze the top_n largest clusters for a given mapping file and threshold.
+    Calculates intra-cluster pairwise similarities and representative-to-member similarities.
     """
     if not os.path.isfile(mapping_tsv):
         print(f"Warning: Mapping file not found: {mapping_tsv}", file=sys.stderr)
@@ -190,6 +188,19 @@ def analyze_clusters_for_condition(mapping_tsv, sim_dict, theta, cmin, top_n=20)
             prots.add(b)
         num_unique_prots = len(prots)
         
+        # Representative-to-member similarities
+        other_members = [p for p in pairs if p != rep]
+        if other_members:
+            rep_sims = [compute_pair_sim(rep, p, sim_dict) for p in other_members]
+            min_rep_sim = min(rep_sims)
+            mean_rep_sim = sum(rep_sims) / len(rep_sims)
+            sorted_rep_sims = sorted(rep_sims)
+            median_rep_sim = sorted_rep_sims[len(sorted_rep_sims) // 2]
+        else:
+            min_rep_sim = 1.0
+            mean_rep_sim = 1.0
+            median_rep_sim = 1.0
+
         if nk < 2:
             results.append({
                 "rank": rank,
@@ -204,9 +215,13 @@ def analyze_clusters_for_condition(mapping_tsv, sim_dict, theta, cmin, top_n=20)
                 "mean_sim": 1.0,
                 "median_sim": 1.0,
                 "max_sim": 1.0,
+                "min_rep_sim": min_rep_sim,
+                "mean_rep_sim": mean_rep_sim,
+                "median_rep_sim": median_rep_sim,
             })
             continue
             
+        # Intra-cluster pairwise comparisons (all-vs-all)
         total_pairs_of_pairs = nk * (nk - 1) // 2
         count_ge_theta = 0
         pair_sims = []
@@ -238,6 +253,9 @@ def analyze_clusters_for_condition(mapping_tsv, sim_dict, theta, cmin, top_n=20)
             "mean_sim": mean_sim,
             "median_sim": median_sim,
             "max_sim": max_sim,
+            "min_rep_sim": min_rep_sim,
+            "mean_rep_sim": mean_rep_sim,
+            "median_rep_sim": median_rep_sim,
         })
         
     return results
@@ -248,10 +266,10 @@ def format_markdown_table(results, theta, cmin):
     lines = []
     lines.append(f"### Condition: Identity $\\theta = {theta:.2f}$, Coverage $c_{{\\min}} = {cmin:.2f}$\n")
     lines.append(
-        "| Rank | Cluster ID | Representative Interaction | Interacting Pairs ($n_k$) | Unique Proteins | Pair Comparisons $\\binom{n_k}{2}$ | Pairs with $S \\ge \\theta$ | Density $f_k(\\theta)$ | Min Pair Sim | Mean Pair Sim | Median Pair Sim |"
+        "| Rank | Cluster ID | Representative Interaction | Interacting Pairs ($n_k$) | Unique Proteins | Pair Comparisons $\\binom{n_k}{2}$ | Pairs with $S \\ge \\theta$ | Density $f_k(\\theta)$ | Min Pair Sim | Mean Pair Sim | Min Rep Sim | Mean Rep Sim |"
     )
     lines.append(
-        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
+        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
     )
     
     for r in results:
@@ -259,7 +277,8 @@ def format_markdown_table(results, theta, cmin):
             f"| {r['rank']} | **{r['cluster_id']}** | `{r['rep_pair']}` | "
             f"**{r['nk']}** | {r['unique_prots']} | {r['binom_nk']:,} | "
             f"{r['pairs_ge_theta']:,} | **{r['f_k'] * 100.0:.1f}%** | "
-            f"`{r['min_sim']:.3f}` | `{r['mean_sim']:.3f}` | `{r['median_sim']:.3f}` |"
+            f"`{r['min_sim']:.3f}` | `{r['mean_sim']:.3f}` | "
+            f"`{r['min_rep_sim']:.3f}` | `{r['mean_rep_sim']:.3f}` |"
         )
     lines.append("")
     return "\n".join(lines)
@@ -268,35 +287,42 @@ def format_markdown_table(results, theta, cmin):
 def generate_full_markdown_report(all_results, overall_summary):
     """Generate comprehensive Markdown report string."""
     md_lines = []
-    md_lines.append("# Intra-Cluster Pair Similarity & Clique Density ($f_k(\\theta)$) Report\n")
+    md_lines.append("# Intra-Cluster Pair Similarity & Representative Cohesion Report\n")
     md_lines.append(
-        "This report evaluates the internal cohesion and clique density $f_k(\\theta)$ across the **20 largest clusters** "
-        "generated at sequence identity thresholds $\\theta \\in \\{0.40, 0.70\\}$ and reciprocal coverage thresholds $c_{\\min} \\in \\{0.50, 0.70, 0.80, 0.90\\}.\n"
+        "This report evaluates the internal cohesion, clique density $f_k(\\theta)$, and representative-to-member similarities "
+        "across the **20 largest clusters** generated at sequence identity thresholds $\\theta \\in \\{0.40, 0.70\\}$ and "
+        "reciprocal coverage thresholds $c_{\\min} \\in \\{0.50, 0.70, 0.80, 0.90\\}.\n"
     )
     
-    md_lines.append("## 1. Metric Formulation\n")
+    md_lines.append("## 1. Metric Formulations\n")
     md_lines.append(
+        "### A. Intra-Cluster Clique Density ($f_k(\\theta)$)\n"
         "For a cluster $k$ containing $n_k$ interaction pairs, the total number of distinct pairwise comparisons is $\\binom{n_k}{2} = \\frac{n_k (n_k - 1)}{2}$. "
         "The **intra-cluster clique density** $f_k(\\theta)$ is defined as:\n\n"
         "$$\n"
         "f_k(\\theta) = \\frac{\\#\\{(P_i, P_j) : S(P_i, P_j) \\ge \\theta\\}}{\\binom{n_k}{2}}\n"
         "$$\n\n"
         "- **$f_k(\\theta) = 1.0$ (100%)**: Represents an **ideal complete clique**, where every interaction pair is mutually similar ($\\ge \\theta$) to every other interaction pair in the cluster.\n"
-        "- **$f_k(\\theta) < 1.0$**: Indicates a **star / hub-and-spoke topology**, where peripheral pairs share $\\ge \\theta$ similarity with the cluster representative $P_{\\text{rep}}$, but some divergent pairs at the periphery fall below $\\theta$ relative to each other.\n"
+        "- **$f_k(\\theta) < 1.0$**: Indicates a **star / hub-and-spoke topology**, where peripheral pairs share $\\ge \\theta$ similarity with the cluster representative $P_{\\text{rep}}$, but some divergent pairs at the periphery fall below $\\theta$ relative to each other.\n\n"
+        "### B. Representative-to-Member Similarity\n"
+        "Measures how tightly member interactions cluster around the cluster centroid / representative $P_{\\text{rep}}$ ($n_k - 1$ comparisons):\n"
+        "- **$\\min_{P_i \\neq P_{\\text{rep}}} S(P_{\\text{rep}}, P_i)$**: The cluster radius / minimum similarity of any recruited member to the representative (bounded below by $\\theta$).\n"
+        "- **$\\text{mean}_{P_i \\neq P_{\\text{rep}}} S(P_{\\text{rep}}, P_i)$**: The average similarity between the representative interaction and all recruited member interactions.\n"
     )
     
     md_lines.append("## 2. Comparative Summary Across All 8 Conditions\n")
     md_lines.append(
-        "| Identity Threshold ($\\theta$) | Coverage ($c_{\\min}$) | Total Pairs (Top 20) | Max Cluster Size ($n_{\\max}$) | Avg Clique Density $\\bar{f}_k(\\theta)$ | Avg Min Pair Sim | Avg Mean Pair Sim |"
+        "| Identity Threshold ($\\theta$) | Coverage ($c_{\\min}$) | Total Pairs (Top 20) | Max Cluster Size ($n_{\\max}$) | Avg Clique Density $\\bar{f}_k(\\theta)$ | Avg Min Pair Sim | Avg Mean Pair Sim | Avg Min Rep Sim | Avg Mean Rep Sim |"
     )
     md_lines.append(
-        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
+        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
     )
     for s in overall_summary:
         md_lines.append(
             f"| **{s['theta']:.2f}** | **{s['cmin']:.2f}** | "
             f"{s['total_pairs_top20']:,} | {s['max_size']} | "
-            f"**{s['avg_fk'] * 100.0:.2f}%** | `{s['avg_min_sim']:.3f}` | `{s['avg_mean_sim']:.3f}` |"
+            f"**{s['avg_fk'] * 100.0:.2f}%** | `{s['avg_min_sim']:.3f}` | `{s['avg_mean_sim']:.3f}` | "
+            f"`{s['avg_min_rep_sim']:.3f}` | `{s['avg_mean_rep_sim']:.3f}` |"
         )
     md_lines.append("\n---\n")
 
@@ -304,11 +330,11 @@ def generate_full_markdown_report(all_results, overall_summary):
     for (theta_val, cmin_val), results in all_results:
         md_lines.append(format_markdown_table(results, theta_val, cmin_val))
         
-    md_lines.append("## 4. Key Observations & Takeaways\n")
+    md_lines.append("## 4. Key Takeaways & Topological Interpretation\n")
     md_lines.append(
-        "1. **Paralog Duplicate Complexes ($\\theta = 0.70$)**: Across all coverage thresholds (0.50 to 0.90), clusters at 70% identity demonstrate remarkably high clique density ($f_k(0.70)$), reflecting compact, highly cohesive interaction cliques among recent whole-genome duplicates.\n"
-        "2. **Broad Fold Families ($\\theta = 0.40$)**: At 40% identity, large gene families (e.g. LRR-RLKs, kinases, transcription factors) form extensive star-like networks. All members are homologous to the central representative, but peripheral leaves can diverge below 40% relative to each other.\n"
-        "3. **Coverage Impact on Cohesion**: Increasing coverage from $0.50 \\to 0.90$ filters out loose domain hits, progressively increasing intra-cluster cohesion while shrinking the maximum cluster size.\n"
+        "1. **Representative Radius vs Pairwise Minimum**: Across all clusters, `Min Rep Sim` $\\ge \\theta$ holds by greedy definition. In contrast, `Min Pair Sim` can drop below $\\theta$ in large clusters (especially at $\\theta = 0.40$), quantitatively proving the star topology where peripheral leaves diverge from one another while remaining homologous to the representative.\n"
+        "2. **70% Identity Yields Near-Complete Cliques**: At $\\theta = 0.70$, `Min Rep Sim` and `Min Pair Sim` are closely aligned (both typically $\\ge 0.70$), demonstrating that recent WGD duplicate complexes form compact, fully connected cliques.\n"
+        "3. **Coverage Impact on Cohesion**: Increasing coverage requirement from $0.50 \\to 0.90$ tightens the domain alignment requirement, eliminating looser multi-domain links and raising average clique density.\n"
     )
     return "\n".join(md_lines)
 
@@ -319,7 +345,8 @@ def save_detailed_tsv(output_tsv_path, all_results):
         "Identity_Theta", "Coverage_Cmin", "Rank", "Cluster_ID", "Representative_Pair",
         "Interactions_Count_nk", "Unique_Proteins", "Pairwise_Comparisons_binom_nk",
         "Pairs_With_S_ge_Theta", "Clique_Density_fk", "Min_Pair_Similarity",
-        "Mean_Pair_Similarity", "Median_Pair_Similarity", "Max_Pair_Similarity"
+        "Mean_Pair_Similarity", "Median_Pair_Similarity", "Max_Pair_Similarity",
+        "Min_Rep_To_Member_Sim", "Mean_Rep_To_Member_Sim", "Median_Rep_To_Member_Sim"
     ]
     with open(output_tsv_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
@@ -330,13 +357,14 @@ def save_detailed_tsv(output_tsv_path, all_results):
                     f"{theta:.2f}", f"{cmin:.2f}", r["rank"], r["cluster_id"], r["rep_pair"],
                     r["nk"], r["unique_prots"], r["binom_nk"], r["pairs_ge_theta"],
                     f"{r['f_k']:.4f}", f"{r['min_sim']:.4f}", f"{r['mean_sim']:.4f}",
-                    f"{r['median_sim']:.4f}", f"{r['max_sim']:.4f}"
+                    f"{r['median_sim']:.4f}", f"{r['max_sim']:.4f}",
+                    f"{r['min_rep_sim']:.4f}", f"{r['mean_rep_sim']:.4f}", f"{r['median_rep_sim']:.4f}"
                 ])
     print(f"Saved detailed cluster density TSV to: {output_tsv_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate intra-cluster pair similarity and clique density across all conditions")
+    parser = argparse.ArgumentParser(description="Evaluate intra-cluster pair similarity and representative cohesion across all conditions")
     parser.add_argument("--alignments_tsv", type=str,
                         default="data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv",
                         help="Path to MMseqs2 convertalis TSV")
@@ -372,7 +400,7 @@ def main():
     output_tsv = resolve_path(args.output_tsv)
 
     print("=====================================================================")
-    print("      AraPPLM: Cluster Density & Minimum Pair Similarity (f_k)       ")
+    print("  AraPPLM: Cluster Density & Representative Cohesion Evaluation      ")
     print("=====================================================================")
     print(f"Alignments TSV: {alignments_tsv}")
     print(f"Mappings Dir:   {mappings_dir}")
@@ -422,12 +450,16 @@ def main():
             avg_fk = sum(r["f_k"] for r in results) / len(results) if results else 0.0
             avg_min_sim = sum(r["min_sim"] for r in results) / len(results) if results else 0.0
             avg_mean_sim = sum(r["mean_sim"] for r in results) / len(results) if results else 0.0
+            avg_min_rep_sim = sum(r["min_rep_sim"] for r in results) / len(results) if results else 0.0
+            avg_mean_rep_sim = sum(r["mean_rep_sim"] for r in results) / len(results) if results else 0.0
             
-            print(f"  -> Total Pairs in Top 20:          {total_pairs_top20}")
-            print(f"  -> Max Cluster Size:               {max_size}")
-            print(f"  -> Average Clique Density f_k:     {avg_fk * 100.0:.2f}%")
-            print(f"  -> Average Minimum Pair Similarity: {avg_min_sim:.4f}")
-            print(f"  -> Average Mean Pair Similarity:    {avg_mean_sim:.4f}")
+            print(f"  -> Total Pairs in Top 20:           {total_pairs_top20}")
+            print(f"  -> Max Cluster Size:                {max_size}")
+            print(f"  -> Average Clique Density f_k:      {avg_fk * 100.0:.2f}%")
+            print(f"  -> Average Min Pair Sim:            {avg_min_sim:.4f}")
+            print(f"  -> Average Mean Pair Sim:           {avg_mean_sim:.4f}")
+            print(f"  -> Average Min Rep-to-Member Sim:   {avg_min_rep_sim:.4f}")
+            print(f"  -> Average Mean Rep-to-Member Sim:  {avg_mean_rep_sim:.4f}")
             
             overall_summary.append({
                 "theta": theta_val,
@@ -437,6 +469,8 @@ def main():
                 "avg_fk": avg_fk,
                 "avg_min_sim": avg_min_sim,
                 "avg_mean_sim": avg_mean_sim,
+                "avg_min_rep_sim": avg_min_rep_sim,
+                "avg_mean_rep_sim": avg_mean_rep_sim,
             })
 
     # Generate and save markdown report
