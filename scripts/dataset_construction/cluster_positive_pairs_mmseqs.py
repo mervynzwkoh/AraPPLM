@@ -464,7 +464,20 @@ def write_summary_tables(output_dir, sweep_metrics):
                 f"{m['min_cluster_size']} | {m['multi_pair_clusters']:,} | "
                 f"{m['singletons']:,} | {m['elapsed_seconds']:.1f}s |\n"
             )
-        f.write("\n\n*Note: Redundancy removed is defined as (Total Input Pairs - Non-Redundant Pairs) / Total Input Pairs.*\n")
+        f.write("\n\n*Note: Redundancy removed is defined as $(N_{\\text{total}} - N_{\\text{rep}}) / N_{\\text{total}} \\times 100\\%$, where $N_{\\text{total}} = 30,376$.*\n\n")
+        f.write("## Parameters Used in the MMseqs2 & Clustering Pipeline\n\n")
+        f.write("### A. MMseqs2 All-vs-All Search Parameters (`mmseqs search`)\n")
+        f.write("- **`-s 7.5` (Sensitivity)**: High sensitivity search threshold (MMseqs2 default is 5.7). Captures remote homologs down to the twilight zone with sensitivity matching BLASTP/Smith-Waterman.\n")
+        f.write("- **`--min-seq-id 0.30`**: Minimum sequence identity fraction during alignment search (30%). Permissive cutoff allowing all downstream $\\theta$ thresholds to be evaluated from one database.\n")
+        f.write("- **`-c 0.30`**: Minimum alignment coverage fraction during search phase (30%).\n")
+        f.write("- **`--cov-mode 0`**: Reciprocal / bidirectional coverage mode: $\\min(\\text{cov}_{\\text{query}}, \\text{cov}_{\\text{target}}) \\ge c$.\n")
+        f.write("- **`--threads 16`**: 16 CPU cores utilized for multi-threaded alignment.\n\n")
+        f.write("### B. Pair Similarity & Clustering Parameters\n")
+        f.write("- **$\\theta$ (Identity Threshold)**: Minimum sequence identity fraction required for single-protein homology ($s(X, Y) \\ge \\theta$). Evaluated at 0.40 (fold/structural cutoff), 0.70 (paralog/WGD cutoff), and 0.90 (near-identical copy cutoff).\n")
+        f.write("- **$c_{\\min}$ (Coverage Threshold)**: Minimum reciprocal alignment coverage required for homology ($\\min(\\text{qcov}, \\text{tcov}) \\ge c_{\\min}$). Prevents short local motif matches (e.g. 20-30 residue ATP loops or zinc fingers) from falsely flagging full-length proteins as homologous.\n")
+        f.write("- **`max_evalue 1e-3`**: Maximum E-value cutoff to ensure sequence alignment statistical significance.\n")
+        f.write("- **Pair Similarity Metric**: $S(P_i, P_j) = \\max[\\min(s(A,C), s(B,D)), \\min(s(A,D), s(B,C))]$. The `min` operator enforces that both interactors must be homologous; `max` accounts for interaction symmetry.\n")
+        f.write("- **Representative Selection Priority**: Greedy priority hierarchy: HIPPIE confidence score (`score` desc) $\\rightarrow$ total evidence count (`evidence_count` desc) $\\rightarrow$ combined protein length ($L_A + L_B$ desc) $\\rightarrow$ lexicographical IDs.\n")
 
     print(f"\nSaved overall summary TSV: {summary_tsv}")
     print(f"Saved overall summary Markdown: {summary_md}")
