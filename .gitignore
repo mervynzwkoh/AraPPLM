@@ -24,6 +24,14 @@ data/rice/uniprot_rice.fasta
 data/rice/*.pkl
 data/**/*.pkl
 data/dataset_construction/**/*_positive_evidence.tsv
+# Stage 2 Negative Sampling outputs (reproducible via HPC pipeline)
+data/dataset_construction/02_negative_sampling/**/*.tsv
+data/dataset_construction/02_negative_sampling/**/*.tsv.gz
+data/dataset_construction/02_negative_sampling/**/*.parquet
+data/dataset_construction/02_negative_sampling/**/*.json
+data/dataset_construction/02_negative_sampling/candidates/
+!data/dataset_construction/02_negative_sampling/**/.gitkeep
+
 # Stage 3 Homology Clustering outputs (reproducible via pipeline scripts)
 data/dataset_construction/03_homology_clustering/**/*.tsv
 data/dataset_construction/03_homology_clustering/**/*.md

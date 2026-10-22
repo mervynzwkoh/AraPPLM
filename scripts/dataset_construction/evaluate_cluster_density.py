@@ -312,19 +312,20 @@ def generate_full_markdown_report(all_results, overall_summary):
     
     md_lines.append("## 2. Comparative Summary Across All 8 Conditions\n")
     md_lines.append(
-        "| Identity Threshold ($\\theta$) | Coverage ($c_{\\min}$) | Total Pairs (Top 20) | Max Cluster Size ($n_{\\max}$) | Avg Clique Density $\\bar{f}_k(\\theta)$ | Avg Min Pair Sim | Avg Mean Pair Sim | Avg Min Rep Sim | Avg Mean Rep Sim |"
+        "| Identity Threshold ($\\theta$) | Coverage ($c_{\\min}$) | Total Pairs (Top 20) | % of Total Pairs (30,376) | Max Cluster Size ($n_{\\max}$) | Avg Clique Density $\\bar{f}_k(\\theta)$ | Avg Min Pair Sim | Avg Mean Pair Sim | Avg Min Rep Sim | Avg Mean Rep Sim |"
     )
     md_lines.append(
-        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
+        "|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|"
     )
     for s in overall_summary:
+        pct_top20 = (s['total_pairs_top20'] / 30376.0) * 100.0
         md_lines.append(
             f"| **{s['theta']:.2f}** | **{s['cmin']:.2f}** | "
-            f"{s['total_pairs_top20']:,} | {s['max_size']} | "
+            f"{s['total_pairs_top20']:,} | {pct_top20:.2f}% | {s['max_size']} | "
             f"**{s['avg_fk'] * 100.0:.2f}%** | `{s['avg_min_sim']:.3f}` | `{s['avg_mean_sim']:.3f}` | "
             f"`{s['avg_min_rep_sim']:.3f}` | `{s['avg_mean_rep_sim']:.3f}` |"
         )
-    md_lines.append("\n---\n")
+    md_lines.append("\n*Note: % of total pairs is calculated relative to all 30,376 curated heteromeric positive pairs.*\n\n---\n")
 
     md_lines.append("## 3. Detailed Top 20 Cluster Tables for Each Condition\n")
     for (theta_val, cmin_val), results in all_results:

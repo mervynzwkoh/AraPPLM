@@ -1,0 +1,137 @@
+#!/bin/bash
+# ==============================================================================
+# submit_negative_sampling_hpc.pbs
+# ==============================================================================
+# PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
+# Executes Stage 2 Candidate Negative Sample Generation Pipeline for Arabidopsis:
+#   Stage 1: Build exhaustive zero-filter positive blacklist (~3.8M+ pairs)
+#   Stage 2: Evaluate 409M candidate pairs (disjoint subcellular & blacklist check)
+#
+# Submit with:
+#   qsub scripts/dataset_construction/submit_negative_sampling_hpc.pbs
+#
+# Check status:
+#   qstat -u $USER
+#
+# Monitor log:
+#   tail -f logs_negative_sampling.log
+# ==============================================================================
+
+#PBS -N ara_negative_sampling
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=16:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o logs_negative_sampling.log
+
+# Move to job submission directory
+cd "${PBS_O_WORKDIR:-$PWD}"
+
+echo "========================================================================"
+echo "Job started on: $(hostname) at $(date)"
+echo "Working directory: $(pwd)"
+echo "Job ID: ${PBS_JOBID:-LOCAL}"
+echo "========================================================================"
+
+# Load modules / Conda environment
+if [ -f "$HOME/.bashrc" ]; then
+    # Temporarily disable unbound variable check if present in user/system bashrc
+    set +u
+    source "$HOME/.bashrc" 2>/dev/null || true
+fi
+
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+else
+    module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
+fi
+
+conda activate python11 2>/dev/null || true
+
+# Verify python binary
+PYTHON_BIN="python3"
+for py_dir in \
+    "$HOME/.conda/envs/python11/bin" \
+    "$HOME/miniconda3/envs/python11/bin" \
+    "$HOME/miniforge3/envs/python11/bin" \
+    "/app1/common/miniconda3/envs/python11/bin"; do
+    if [ -f "${py_dir}/python3" ]; then
+        PYTHON_BIN="${py_dir}/python3"
+        echo "Using explicit Python: ${PYTHON_BIN}"
+        break
+    fi
+done
+
+echo "Python version: $("${PYTHON_BIN}" --version)"
+
+# Create output directories
+mkdir -p data/dataset_construction/02_negative_sampling/candidates
+
+# ==============================================================================
+# STAGE 1: Build Exhaustive Positive Blacklist (~3.8M+ pairs across all databases)
+# ==============================================================================
+echo ""
+echo "========================================================================"
+echo "STAGE 1: Compiling Exhaustive Positive Interaction Blacklist"
+echo "Started at: $(date)"
+echo "========================================================================"
+
+"${PYTHON_BIN}" scripts/dataset_construction/02_build_positive_blacklist_hpc.py \
+    --stream_path "data/arabidopsis/uniprot_arabidopsis_stream.tsv.gz" \
+    --biogrid_path "data/raw/arabidopsis/biogrid/BIOGRID-ORGANISM-Arabidopsis_thaliana_Columbia-5.0.261.tab3.txt" \
+    --intact_path "data/raw/arabidopsis/intact/intact_arabidopsis_taxid3702_release252.mitab27.txt" \
+    --xlms_path "data/raw/arabidopsis/xlms_2026/Total_XL_plink3-2_v3.csv" \
+    --string_phys_path "data/raw/arabidopsis/string/3702.protein.physical.links.full.v12.0.txt.gz" \
+    --string_det_path "data/raw/arabidopsis/string/3702.protein.links.detailed.v12.0.txt.gz" \
+    --deeparappi_path "data/raw/legacy_benchmarks/deeparappi/total_positive_samples_DeepAraPPI.txt" \
+    --esmarappi_dir "data/raw/legacy_benchmarks/esmarappi" \
+    --out_dir "data/dataset_construction/02_negative_sampling"
+
+EXIT_CODE_STAGE1=$?
+if [ $EXIT_CODE_STAGE1 -ne 0 ]; then
+    echo "ERROR: Stage 1 (Blacklist compilation) failed with exit code ${EXIT_CODE_STAGE1}."
+    exit $EXIT_CODE_STAGE1
+fi
+
+echo "Stage 1 finished successfully at $(date)."
+
+# ==============================================================================
+# STAGE 2: Generate Candidate Negatives (Disjoint Subcellular & Blacklist Excluded)
+# ==============================================================================
+echo ""
+echo "========================================================================"
+echo "STAGE 2: Generating Candidate Negative Sample Dataset"
+echo "Started at: $(date)"
+echo "========================================================================"
+
+"${PYTHON_BIN}" scripts/dataset_construction/02_generate_candidate_negatives_hpc.py \
+    --stream_path "data/arabidopsis/uniprot_arabidopsis_stream.tsv.gz" \
+    --tair_gaf_path "data/raw/arabidopsis/tair/tair.gaf.gz" \
+    --blacklist_path "data/dataset_construction/02_negative_sampling/ara_all_databases_positive_blacklist.parquet" \
+    --out_dir "data/dataset_construction/02_negative_sampling/candidates" \
+    --audit_path "data/dataset_construction/02_negative_sampling/ara_candidate_negatives_audit.json" \
+    --chunk_size 1000000 \
+    --block_size 2000
+
+EXIT_CODE_STAGE2=$?
+if [ $EXIT_CODE_STAGE2 -ne 0 ]; then
+    echo "ERROR: Stage 2 (Candidate Negative Generation) failed with exit code ${EXIT_CODE_STAGE2}."
+    exit $EXIT_CODE_STAGE2
+fi
+
+echo "Stage 2 finished successfully at $(date)."
+
+echo ""
+echo "========================================================================"
+echo "Pipeline execution finished successfully at: $(date)"
+echo "Output Chunks:"
+ls -lh data/dataset_construction/02_negative_sampling/candidates/
+echo ""
+echo "Audit Summary:"
+cat data/dataset_construction/02_negative_sampling/ara_candidate_negatives_audit.json
+echo "========================================================================"
