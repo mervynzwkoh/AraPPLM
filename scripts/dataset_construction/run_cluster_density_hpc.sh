@@ -51,7 +51,7 @@ fi
 
 ALN_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv"
 MAPPINGS_DIR="data/dataset_construction/03_homology_clustering/arabidopsis/mappings"
-SUMMARY_MD="docs/dataset_construction/03_homology_clustering/summary_clustering_metrics.md"
+OUTPUT_MD="data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_report.md"
 OUTPUT_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_metrics.tsv"
 
 if [ ! -f "${ALN_TSV}" ]; then
@@ -63,15 +63,16 @@ fi
 ${PYTHON_CMD} scripts/dataset_construction/evaluate_cluster_density.py \
     --alignments_tsv "${ALN_TSV}" \
     --mappings_dir "${MAPPINGS_DIR}" \
-    --summary_md "${SUMMARY_MD}" \
+    --output_md "${OUTPUT_MD}" \
     --output_tsv "${OUTPUT_TSV}" \
-    --cmin 0.50 \
+    --thetas 0.40 0.70 \
+    --cmins 0.50 0.70 0.80 0.90 \
     --top_n 20
 
 echo ""
 echo "========================================================================"
-echo "Cluster density evaluation complete!"
-echo "Results updated in:"
-echo "  - ${SUMMARY_MD}"
-echo "  - ${OUTPUT_TSV}"
+echo "Cluster density evaluation complete across all 8 conditions!"
+echo "Outputs generated in data directory:"
+echo "  - Markdown Report: ${OUTPUT_MD}"
+echo "  - Tabular TSV:     ${OUTPUT_TSV}"
 echo "========================================================================"
