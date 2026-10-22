@@ -24,8 +24,12 @@ data/rice/uniprot_rice.fasta
 data/rice/*.pkl
 data/**/*.pkl
 data/dataset_construction/**/*_positive_evidence.tsv
+# Stage 3 Homology Clustering outputs (reproducible via pipeline scripts)
+data/dataset_construction/03_homology_clustering/**/*.tsv
+data/dataset_construction/03_homology_clustering/**/*.md
+data/dataset_construction/03_homology_clustering/**/mappings/
 data/dataset_construction/03_homology_clustering/**/mmseqs_db/
-data/dataset_construction/03_homology_clustering/**/*_all_vs_all.tsv
+!data/dataset_construction/03_homology_clustering/**/.gitkeep
 *.parquet
 *.parquet.tmp
 *.jsonl

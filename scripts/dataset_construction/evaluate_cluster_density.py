@@ -415,6 +415,12 @@ def main():
 
     full_md = "\n".join(md_blocks)
     append_results_to_summary_md(summary_md, full_md)
+    
+    # Also update docs summary if present
+    docs_summary_md = os.path.join(repo_root, "docs", "dataset_construction", "03_homology_clustering", "summary_clustering_metrics.md")
+    if os.path.isfile(docs_summary_md) and os.path.abspath(docs_summary_md) != os.path.abspath(summary_md):
+        append_results_to_summary_md(docs_summary_md, full_md)
+
     save_detailed_tsv(output_tsv, all_results)
 
     print("\n=====================================================================")
