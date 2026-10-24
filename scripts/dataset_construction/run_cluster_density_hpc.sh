@@ -2,13 +2,20 @@
 # ==============================================================================
 # run_cluster_density_hpc.sh
 # ==============================================================================
-# Calculates the intra-cluster clique density metric f_k(theta) and minimum pair
-# similarity for the 20 largest clusters at theta=0.40 and theta=0.70.
+# Calculates the intra-cluster clique density metric f_k(theta), pair similarity,
+# and representative-to-member cohesion for the 20 largest clusters across:
+#   - Fixed sequence identity threshold: theta = 0.50
+#   - Alignment coverage sweep: cmin in [0.50, 0.60, 0.70, 0.80, 0.90]
 #
-# Can be run directly on an HPC login/compute node (runs in ~2 seconds).
+# If mapping files do not exist yet for theta=0.50, they will be auto-generated
+# on-the-fly using the precomputed MMseqs2 alignments.
 #
 # Usage:
+#   # Run with defaults (theta=0.50, cmins in 0.50 0.60 0.70 0.80 0.90, top 20 clusters):
 #   bash scripts/dataset_construction/run_cluster_density_hpc.sh
+#
+#   # Override via environment variables if desired:
+#   THETAS="0.50" CMINS="0.50 0.60 0.70 0.80 0.90" bash scripts/dataset_construction/run_cluster_density_hpc.sh
 # ==============================================================================
 
 set -eo pipefail
@@ -30,6 +37,8 @@ if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
     source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
     source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 fi
 
 conda activate python11 2>/dev/null || true
@@ -46,13 +55,32 @@ done
 
 PYTHON_CMD="python3"
 if ! command -v python3 &> /dev/null; then
-    PYTHON_CMD="python"
+    if command -v python &> /dev/null; then
+        PYTHON_CMD="python"
+    else
+        echo "ERROR: Neither 'python3' nor 'python' found in PATH." >&2
+        exit 1
+    fi
 fi
+
+# Configurations (Fixed theta=0.50, coverage sweep across 0.50 to 0.90)
+THETAS="${THETAS:-0.50}"
+CMINS="${CMINS:-0.50 0.60 0.70 0.80 0.90}"
+TOP_N="${TOP_N:-20}"
 
 ALN_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv"
 MAPPINGS_DIR="data/dataset_construction/03_homology_clustering/arabidopsis/mappings"
-OUTPUT_MD="data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_report.md"
-OUTPUT_TSV="data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_metrics.tsv"
+OUTPUT_MD="${OUTPUT_MD:-data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_report.md}"
+OUTPUT_TSV="${OUTPUT_TSV:-data/dataset_construction/03_homology_clustering/arabidopsis/top20_cluster_density_metrics.tsv}"
+
+echo "Repository Root:     ${REPO_ROOT}"
+echo "Date / Time:         $(date)"
+echo "Identity Thresholds: ${THETAS}"
+echo "Coverage Thresholds: ${CMINS}"
+echo "Top N Clusters:      ${TOP_N}"
+echo "Output Markdown:     ${OUTPUT_MD}"
+echo "Output TSV:          ${OUTPUT_TSV}"
+echo "========================================================================"
 
 if [ ! -f "${ALN_TSV}" ]; then
     echo "ERROR: Alignment file missing: ${ALN_TSV}" >&2
@@ -65,13 +93,13 @@ ${PYTHON_CMD} scripts/dataset_construction/evaluate_cluster_density.py \
     --mappings_dir "${MAPPINGS_DIR}" \
     --output_md "${OUTPUT_MD}" \
     --output_tsv "${OUTPUT_TSV}" \
-    --thetas 0.40 0.70 \
-    --cmins 0.50 0.70 0.80 0.90 \
-    --top_n 20
+    --thetas ${THETAS} \
+    --cmins ${CMINS} \
+    --top_n "${TOP_N}"
 
 echo ""
 echo "========================================================================"
-echo "Cluster density evaluation complete across all 8 conditions!"
+echo "Cluster density evaluation completed successfully!"
 echo "Outputs generated in data directory:"
 echo "  - Markdown Report: ${OUTPUT_MD}"
 echo "  - Tabular TSV:     ${OUTPUT_TSV}"

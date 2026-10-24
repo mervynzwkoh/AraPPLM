@@ -3,22 +3,26 @@
 # submit_cluster_density_hpc.pbs
 # ==============================================================================
 # PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
-# Executes intra-cluster pair similarity and clique density evaluation.
+# Executes intra-cluster pair similarity and clique density evaluation for
+# the top 20 largest clusters at fixed identity theta=0.50 across coverage 0.50-0.90.
 #
 # Submit with:
 #   qsub scripts/dataset_construction/submit_cluster_density_hpc.pbs
 #
 # Check status:
 #   qstat -u $USER
+#
+# View real-time log:
+#   tail -f logs_cluster_density_id0_50.log
 # ==============================================================================
 
-#PBS -N ara_ppi_density
+#PBS -N ara_ppi_density_id0_50
 #PBS -P personal-e0969134
 #PBS -q normal
-#PBS -l select=1:ncpus=4:mem=16gb
+#PBS -l select=1:ncpus=8:mem=32gb
 #PBS -l walltime=00:30:00
 #PBS -j oe
-#PBS -o logs_cluster_density.log
+#PBS -o logs_cluster_density_id0_50.log
 
 cd "${PBS_O_WORKDIR:-$PWD}"
 
@@ -27,6 +31,40 @@ echo "Job started on: $(hostname) at $(date)"
 echo "Working directory: $(pwd)"
 echo "Job ID: ${PBS_JOBID:-LOCAL}"
 echo "========================================================================"
+
+# Sourcing bashrc and conda profile script (disable nounset during sourcing)
+set +u 2>/dev/null || true
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc" 2>/dev/null || true
+fi
+
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
+elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
+else
+    module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
+fi
+
+# Activate python11 (provides Python 3.11 environment)
+conda activate python11 2>/dev/null || true
+for py_dir in \
+    "$HOME/.conda/envs/python11/bin" \
+    "$HOME/miniconda3/envs/python11/bin" \
+    "$HOME/miniforge3/envs/python11/bin" \
+    "/app1/common/miniconda3/envs/python11/bin"; do
+    if [ -f "${py_dir}/python3" ]; then
+        export PATH="${py_dir}:$PATH"
+        break
+    fi
+done
+
+# Parameter configurations
+export THETAS="0.50"
+export CMINS="0.50 0.60 0.70 0.80 0.90"
+export TOP_N=20
 
 bash scripts/dataset_construction/run_cluster_density_hpc.sh
 
