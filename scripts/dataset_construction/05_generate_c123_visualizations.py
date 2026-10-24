@@ -3,22 +3,18 @@
 05_generate_c123_visualizations.py
 ==================================
 Generates publication-quality static SVG diagrams and a self-contained
-interactive HTML5 network graph visualizer for the positive PPI C1/C2/C3
-partitions across all 8 threshold sweeps (theta in [0.40, 0.70] x cmin in [0.50, 0.70, 0.80, 0.90]).
+interactive HTML5 network graph visualizer for the positive PPI C1/C2/C3/C4
+benchmark partitions (at theta=0.50, cmin=0.80):
+- C1 (Train): 85% of pairs
+- C2 (One Unseen Test): 5% of pairs
+- C3 (Both Unseen Test): 5% of pairs
+- C4 (Both Seen Test): 5% of pairs
 
-Designed to match scientific journal & presentation aesthetics:
-- Crisp pure white background (#ffffff)
-- Nature / Cell-style academic color palette
-- High-contrast, colorblind-accessible partitions (Cobalt Blue V_train, Emerald Green V_test, Vermilion C2 cut)
-- 300 DPI high-resolution PNG & vector SVG export functionality
-
-Outputs:
---------
-1. Vector SVG Diagrams:
-   results/figures/c123_network_partitions/c123_network_id{theta}_cov{cmin}.svg
-2. Interactive HTML5 Application:
-   results/figures/c123_interactive_network_viewer.html
-   and artifact directory for direct viewing in Antigravity.
+Styled for scientific journal and presentation aesthetics:
+- Pure white background (#ffffff)
+- Nature / Science color palette (Cobalt Blue C1, Amber C2, Ruby C3, Emerald C4)
+- High-contrast, colorblind-accessible partitions
+- Interactive panning, zooming, layer filtering, and 300 DPI export
 """
 
 import os
@@ -28,48 +24,35 @@ import json
 import math
 from collections import defaultdict
 
-SWEEPS = [
-    ("0_40", "0_50"),
-    ("0_40", "0_70"),
-    ("0_40", "0_80"),
-    ("0_40", "0_90"),
-    ("0_70", "0_50"),
-    ("0_70", "0_70"),
-    ("0_70", "0_80"),
-    ("0_70", "0_90"),
-]
-
 BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "dataset_construction", "04_benchmark_splits", "arabidopsis")
-)
-OUT_FIG_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "results", "figures", "c123_network_partitions")
 )
 OUT_DATA_FIG_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "data", "dataset_construction", "04_benchmark_splits", "figures")
 )
+OUT_RES_FIG_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "results", "figures", "c123_network_partitions")
+)
 
 
-def load_partition_data(theta, cmin):
-    """Load C1, C2, C3 positive partition TSVs."""
+def load_partition_data(theta="0_50", cmin="0_80"):
+    """Load C1, C2, C3, C4 positive partition TSVs."""
     c1_path = os.path.join(BASE_DIR, f"ara_positive_c1_train_id{theta}_cov{cmin}.tsv")
     c2_path = os.path.join(BASE_DIR, f"ara_positive_c2_test_id{theta}_cov{cmin}.tsv")
     c3_path = os.path.join(BASE_DIR, f"ara_positive_c3_test_id{theta}_cov{cmin}.tsv")
+    c4_path = os.path.join(BASE_DIR, f"ara_positive_c4_test_id{theta}_cov{cmin}.tsv")
 
-    c1_pairs = []
-    with open(c1_path, "r", encoding="utf-8") as f:
-        for r in csv.DictReader(f, delimiter="\t"):
-            c1_pairs.append((r["participant_a_id"].strip(), r["participant_b_id"].strip(), float(r.get("hippie_score", 0.8))))
+    def read_pairs(p_path):
+        pairs = []
+        with open(p_path, "r", encoding="utf-8") as f:
+            for r in csv.DictReader(f, delimiter="\t"):
+                pairs.append((r["participant_a_id"].strip(), r["participant_b_id"].strip(), float(r.get("hippie_score", 0.8))))
+        return pairs
 
-    c2_pairs = []
-    with open(c2_path, "r", encoding="utf-8") as f:
-        for r in csv.DictReader(f, delimiter="\t"):
-            c2_pairs.append((r["participant_a_id"].strip(), r["participant_b_id"].strip(), float(r.get("hippie_score", 0.8))))
-
-    c3_pairs = []
-    with open(c3_path, "r", encoding="utf-8") as f:
-        for r in csv.DictReader(f, delimiter="\t"):
-            c3_pairs.append((r["participant_a_id"].strip(), r["participant_b_id"].strip(), float(r.get("hippie_score", 0.8))))
+    c1_pairs = read_pairs(c1_path)
+    c2_pairs = read_pairs(c2_path)
+    c3_pairs = read_pairs(c3_path)
+    c4_pairs = read_pairs(c4_path)
 
     v_train = set([p[0] for p in c1_pairs] + [p[1] for p in c1_pairs])
     v_test = set([p[0] for p in c3_pairs] + [p[1] for p in c3_pairs])
@@ -77,21 +60,25 @@ def load_partition_data(theta, cmin):
     return {
         "theta": theta.replace("_", "."),
         "cmin": cmin.replace("_", "."),
+        "theta_str": theta,
+        "cmin_str": cmin,
         "c1_pairs": c1_pairs,
         "c2_pairs": c2_pairs,
         "c3_pairs": c3_pairs,
+        "c4_pairs": c4_pairs,
         "v_train": v_train,
         "v_test": v_test,
     }
 
 
-def compute_core_subgraph(data, n_train=60, n_test=60):
+def compute_core_subgraph(data, n_train=70, n_test=50):
     """
     Extract a high-density, highly-connected core subnetwork for crystal-clear visualization.
     """
     c1 = data["c1_pairs"]
     c2 = data["c2_pairs"]
     c3 = data["c3_pairs"]
+    c4 = data["c4_pairs"]
     v_train = data["v_train"]
     v_test = data["v_test"]
 
@@ -100,18 +87,23 @@ def compute_core_subgraph(data, n_train=60, n_test=60):
         deg_c1[a] += 1
         deg_c1[b] += 1
 
-    deg_c3 = defaultdict(int)
-    for a, b, _ in c3:
-        deg_c3[a] += 1
-        deg_c3[b] += 1
-
     deg_c2 = defaultdict(int)
     for a, b, _ in c2:
         deg_c2[a] += 1
         deg_c2[b] += 1
 
-    # Score train and test nodes by connectivity
-    ranked_train = sorted(v_train, key=lambda n: deg_c1[n] * 1.5 + deg_c2[n] * 2.5, reverse=True)[:n_train]
+    deg_c3 = defaultdict(int)
+    for a, b, _ in c3:
+        deg_c3[a] += 1
+        deg_c3[b] += 1
+
+    deg_c4 = defaultdict(int)
+    for a, b, _ in c4:
+        deg_c4[a] += 1
+        deg_c4[b] += 1
+
+    # Score train and test nodes by connectivity across all partitions
+    ranked_train = sorted(v_train, key=lambda n: deg_c1[n] * 1.0 + deg_c4[n] * 2.0 + deg_c2[n] * 2.5, reverse=True)[:n_train]
     ranked_test = sorted(v_test, key=lambda n: deg_c3[n] * 1.5 + deg_c2[n] * 2.5, reverse=True)[:n_test]
 
     core_node_set = set(ranked_train + ranked_test)
@@ -120,24 +112,25 @@ def compute_core_subgraph(data, n_train=60, n_test=60):
     sub_c1 = [(a, b, s) for a, b, s in c1 if a in core_node_set and b in core_node_set]
     sub_c2 = [(a, b, s) for a, b, s in c2 if a in core_node_set and b in core_node_set]
     sub_c3 = [(a, b, s) for a, b, s in c3 if a in core_node_set and b in core_node_set]
+    sub_c4 = [(a, b, s) for a, b, s in c4 if a in core_node_set and b in core_node_set]
 
     # Node positions (Bipartite clustered circle layout)
-    # Train cluster: Center (360, 450), radius up to 220
-    # Test cluster:  Center (840, 450), radius up to 220
+    # Train cluster: Center (380, 470), radius 230
+    # Test cluster:  Center (860, 470), radius 210
     positions = {}
     node_metadata = {}
 
     def layout_cluster(nodes, cx, cy, base_r=220):
         n_count = len(nodes)
         for i, u in enumerate(nodes):
-            angle = i * 2.399963229728653  # Golden angle in radians
+            angle = i * 2.399963229728653  # Golden angle
             r = base_r * math.sqrt((i + 1) / n_count)
             x = cx + r * math.cos(angle)
             y = cy + r * math.sin(angle)
             positions[u] = (round(x, 1), round(y, 1))
 
-    layout_cluster(ranked_train, 360, 450, 220)
-    layout_cluster(ranked_test, 840, 450, 220)
+    layout_cluster(ranked_train, 380, 470, 230)
+    layout_cluster(ranked_test, 860, 470, 210)
 
     for u in ranked_train:
         node_metadata[u] = {
@@ -147,7 +140,8 @@ def compute_core_subgraph(data, n_train=60, n_test=60):
             "deg_c1": deg_c1[u],
             "deg_c2": deg_c2[u],
             "deg_c3": 0,
-            "total_deg": deg_c1[u] + deg_c2[u],
+            "deg_c4": deg_c4[u],
+            "total_deg": deg_c1[u] + deg_c2[u] + deg_c4[u],
             "x": positions[u][0],
             "y": positions[u][1],
         }
@@ -160,6 +154,7 @@ def compute_core_subgraph(data, n_train=60, n_test=60):
             "deg_c1": 0,
             "deg_c2": deg_c2[u],
             "deg_c3": deg_c3[u],
+            "deg_c4": 0,
             "total_deg": deg_c3[u] + deg_c2[u],
             "x": positions[u][0],
             "y": positions[u][1],
@@ -170,162 +165,197 @@ def compute_core_subgraph(data, n_train=60, n_test=60):
         "sub_c1": sub_c1,
         "sub_c2": sub_c2,
         "sub_c3": sub_c3,
+        "sub_c4": sub_c4,
         "train_nodes": ranked_train,
         "test_nodes": ranked_test,
     }
 
 
 def generate_svg(data, core, out_path):
-    """Generate high-resolution standalone vector SVG styled for scientific journals & presentations."""
+    """Generate high-resolution standalone vector SVG styled for scientific presentations & journals."""
     theta = data["theta"]
     cmin = data["cmin"]
     nodes = core["nodes"]
     sub_c1 = core["sub_c1"]
     sub_c2 = core["sub_c2"]
     sub_c3 = core["sub_c3"]
+    sub_c4 = core["sub_c4"]
 
-    total_pairs = len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"])
+    total_pairs = len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"])
     c1_n = len(data["c1_pairs"])
     c2_n = len(data["c2_pairs"])
     c3_n = len(data["c3_pairs"])
+    c4_n = len(data["c4_pairs"])
     total_prots = len(data["v_train"].union(data["v_test"]))
 
-    width = 1200
-    height = 860
+    width = 1240
+    height = 900
 
-    svg_parts = []
-    svg_parts.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%">')
-    svg_parts.append('<defs>')
-    svg_parts.append('''
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="100%" height="100%">')
+    svg.append('<defs>')
+    svg.append('''
       <filter id="shadow-card" x="-5%" y="-5%" width="110%" height="110%">
         <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.06" />
       </filter>
+      <linearGradient id="c2-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#2563eb" stop-opacity="0.75" />
+        <stop offset="100%" stop-color="#dc2626" stop-opacity="0.75" />
+      </linearGradient>
     ''')
-    svg_parts.append('</defs>')
+    svg.append('</defs>')
 
     # Background - Pure White for Scientific Presentations & Journals
-    svg_parts.append(f'<rect width="{width}" height="{height}" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="8" />')
+    svg.append(f'<rect width="{width}" height="{height}" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" rx="8" />')
 
-    # Subtle cluster backing circles (soft pastel tints for journal panels)
-    svg_parts.append('<circle cx="360" cy="450" r="240" fill="#f8fafc" stroke="#bfdbfe" stroke-width="1.5" stroke-dasharray="5,5" />')
-    svg_parts.append('<circle cx="840" cy="450" r="240" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="1.5" stroke-dasharray="5,5" />')
+    # Cluster backing circles (subtle pastel tints)
+    svg.append('<circle cx="380" cy="470" r="255" fill="#f8fafc" stroke="#bfdbfe" stroke-width="1.5" stroke-dasharray="5,5" />')
+    svg.append('<circle cx="860" cy="470" r="235" fill="#fef2f2" stroke="#fecaca" stroke-width="1.5" stroke-dasharray="5,5" />')
 
-    # Cluster Headers (Clean Academic Typography)
-    svg_parts.append('<text x="360" y="180" text-anchor="middle" fill="#1e40af" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">TRAINING PARTITION (V_train)</text>')
-    svg_parts.append(f'<text x="360" y="202" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="12">{len(data["v_train"]):,} Unique Proteins (80% Edge Target)</text>')
+    # Cluster Headers
+    svg.append('<text x="380" y="195" text-anchor="middle" fill="#1e40af" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">TRAINING PARTITION (V_train)</text>')
+    svg.append(f'<text x="380" y="217" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="12">{len(data["v_train"]):,} Unique Proteins (85% C1 Train + 5% C4 Seen Test)</text>')
 
-    svg_parts.append('<text x="840" y="180" text-anchor="middle" fill="#065f46" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">TEST PARTITION (V_test)</text>')
-    svg_parts.append(f'<text x="840" y="202" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="12">{len(data["v_test"]):,} Unique Proteins (10% Edge Target)</text>')
+    svg.append('<text x="860" y="195" text-anchor="middle" fill="#991b1b" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">TEST PARTITION (V_test)</text>')
+    svg.append(f'<text x="860" y="217" text-anchor="middle" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="12">{len(data["v_test"]):,} Unique Proteins (5% C3 Both Unseen Test)</text>')
 
     # Partition Boundary Cut Line in Center
-    svg_parts.append('<line x1="600" y1="160" x2="600" y2="760" stroke="#ea580c" stroke-opacity="0.4" stroke-width="1.8" stroke-dasharray="6,6" />')
-    svg_parts.append('<text x="600" y="780" text-anchor="middle" fill="#c2410c" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="0.3">ZERO-HOMOLOGY CUT INTERFACE (C2 Cut)</text>')
+    svg.append('<line x1="620" y1="180" x2="620" y2="760" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8,6" />')
+    svg.append('<rect x="535" y="445" width="170" height="30" rx="15" fill="#ffffff" stroke="#94a3b8" stroke-width="1" filter="url(#shadow-card)" />')
+    svg.append('<text x="620" y="465" text-anchor="middle" fill="#475569" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="0.4">DISJOINT BOUNDARY</text>')
 
-    # 1. Draw C1 Edges (Deep Blue, soft alpha)
-    svg_parts.append('<g id="c1-edges" opacity="0.32">')
+    # 1. Render C1 Edges (Cobalt Blue, Train)
+    svg.append('<g id="c1-edges" opacity="0.65">')
     for a, b, _ in sub_c1:
-        x1, y1 = nodes[a]["x"], nodes[a]["y"]
-        x2, y2 = nodes[b]["x"], nodes[b]["y"]
-        svg_parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#2563eb" stroke-width="1.2" />')
-    svg_parts.append('</g>')
+        if a in nodes and b in nodes:
+            x1, y1 = nodes[a]["x"], nodes[a]["y"]
+            x2, y2 = nodes[b]["x"], nodes[b]["y"]
+            svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#2563eb" stroke-width="1.3" />')
+    svg.append('</g>')
 
-    # 2. Draw C3 Edges (Emerald Green, soft alpha)
-    svg_parts.append('<g id="c3-edges" opacity="0.42">')
+    # 2. Render C4 Edges (Emerald Green, Both Seen Test)
+    svg.append('<g id="c4-edges" opacity="0.85">')
+    for a, b, _ in sub_c4:
+        if a in nodes and b in nodes:
+            x1, y1 = nodes[a]["x"], nodes[a]["y"]
+            x2, y2 = nodes[b]["x"], nodes[b]["y"]
+            svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#059669" stroke-width="2.2" stroke-dasharray="4,2" />')
+    svg.append('</g>')
+
+    # 3. Render C3 Edges (Ruby Red, Both Unseen Test)
+    svg.append('<g id="c3-edges" opacity="0.80">')
     for a, b, _ in sub_c3:
-        x1, y1 = nodes[a]["x"], nodes[a]["y"]
-        x2, y2 = nodes[b]["x"], nodes[b]["y"]
-        svg_parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#059669" stroke-width="1.3" />')
-    svg_parts.append('</g>')
+        if a in nodes and b in nodes:
+            x1, y1 = nodes[a]["x"], nodes[a]["y"]
+            x2, y2 = nodes[b]["x"], nodes[b]["y"]
+            svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#dc2626" stroke-width="1.6" />')
+    svg.append('</g>')
 
-    # 3. Draw C2 Edges (Prominent Vermilion/Orange crossing the cut)
-    svg_parts.append('<g id="c2-edges" opacity="0.85">')
+    # 4. Render C2 Edges (Amber Gold, Cross Boundary Cut)
+    svg.append('<g id="c2-edges" opacity="0.75">')
     for a, b, _ in sub_c2:
-        x1, y1 = nodes[a]["x"], nodes[a]["y"]
-        x2, y2 = nodes[b]["x"], nodes[b]["y"]
-        svg_parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#ea580c" stroke-width="1.8" />')
-    svg_parts.append('</g>')
+        if a in nodes and b in nodes:
+            x1, y1 = nodes[a]["x"], nodes[a]["y"]
+            x2, y2 = nodes[b]["x"], nodes[b]["y"]
+            svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#d97706" stroke-width="1.8" />')
+    svg.append('</g>')
 
-    # 4. Draw Nodes
-    svg_parts.append('<g id="nodes">')
+    # 5. Render Nodes
+    svg.append('<g id="nodes">')
     for u, m in nodes.items():
         x, y = m["x"], m["y"]
-        r = min(12, max(4.5, 4 + math.sqrt(m["total_deg"])))
         if m["is_train"]:
-            fill = "#1d4ed8"
-            stroke = "#1e3a8a"
+            fill_col = "#1d4ed8"
+            stroke_col = "#ffffff"
+            r = min(10.0, max(5.0, 4.0 + math.sqrt(m["total_deg"])))
         else:
-            fill = "#059669"
-            stroke = "#064e3b"
-        svg_parts.append(f'<circle cx="{x}" cy="{y}" r="{r}" fill="{fill}" stroke="{stroke}" stroke-width="1.3" />')
+            fill_col = "#b91c1c"
+            stroke_col = "#ffffff"
+            r = min(10.0, max(5.0, 4.0 + math.sqrt(m["total_deg"])))
+        svg.append(f'<circle cx="{x}" cy="{y}" r="{r:.1f}" fill="{fill_col}" stroke="{stroke_col}" stroke-width="1.5" />')
+    svg.append('</g>')
 
-        # Add label for high-degree nodes
-        if m["total_deg"] >= 8:
-            svg_parts.append(f'<text x="{x}" y="{y - r - 3}" text-anchor="middle" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700">{u}</text>')
-    svg_parts.append('</g>')
+    # Header Title Banner (Journal Typography)
+    svg.append('''
+      <rect x="30" y="25" width="1180" height="90" rx="8" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" filter="url(#shadow-card)" />
+      <text x="50" y="58" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Arabidopsis thaliana PPI Benchmark: C1 / C2 / C3 / C4 Network Partition</text>
+      <text x="50" y="82" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="12">Sequence Identity &theta; = ''' + theta + ''' &bull; Reciprocal Coverage c_min = ''' + cmin + ''' &bull; Total Non-Redundant Interactions: ''' + f"{total_pairs:,}" + ''' (''' + f"{total_prots:,}" + ''' Proteins)</text>
+      <rect x="1040" y="44" width="150" height="28" rx="14" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="1" />
+      <text x="1115" y="62" text-anchor="middle" fill="#065f46" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700">ZERO DATA LEAKAGE</text>
+    ''')
 
-    # Top Title & Summary HUD Card
-    svg_parts.append('<rect x="30" y="24" width="1140" height="96" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" filter="url(#shadow-card)" />')
-    svg_parts.append(f'<text x="52" y="56" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700">Arabidopsis thaliana PPI Network — C1/C2/C3 Homology Partition</text>')
-    svg_parts.append(f'<text x="52" y="80" fill="#475569" font-family="Arial, Helvetica, sans-serif" font-size="12.5">Non-Redundant Interactome | Homology Cutoff: Identity θ = {theta}, Coverage c_min = {cmin} | Zero-Homology Leakage Verified (V_C1 ∩ V_C3 = ∅)</text>')
+    # Legend / Metrics Card
+    svg.append(f'''
+      <rect x="30" y="775" width="1180" height="95" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+      
+      <!-- C1 Metric -->
+      <circle cx="65" cy="810" r="7" fill="#2563eb" />
+      <text x="82" y="814" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">C1 Train Set (85.0%)</text>
+      <text x="82" y="832" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="11">{c1_n:,} pairs &bull; Both in V_train</text>
 
-    # Metric Badges in Top Right
-    pills = [
-        (f"Total: {total_pairs:,} Pairs", "#f1f5f9", "#334155", "#cbd5e1"),
-        (f"C1 Train: {c1_n:,} (80.0%)", "#eff6ff", "#1d4ed8", "#bfdbfe"),
-        (f"C2 Cut: {c2_n:,} (10.0%)", "#fffbeb", "#b45309", "#fde68a"),
-        (f"C3 Test: {c3_n:,} (10.0%)", "#ecfdf5", "#047857", "#a7f3d0"),
-        ("Status: PASS (0 Leak)", "#f0fdf4", "#15803d", "#86efac"),
-    ]
-    px = 560
-    for label, bg, fg, border in pills:
-        pill_w = len(label) * 7.4 + 18
-        svg_parts.append(f'<rect x="{px}" y="44" width="{pill_w}" height="28" rx="14" fill="{bg}" stroke="{border}" stroke-width="1" />')
-        svg_parts.append(f'<text x="{px + pill_w / 2}" y="62.5" text-anchor="middle" fill="{fg}" font-family="Arial, Helvetica, sans-serif" font-size="11.5" font-weight="700">{label}</text>')
-        px += pill_w + 10
+      <!-- C4 Metric -->
+      <circle cx="360" cy="810" r="7" fill="#059669" />
+      <text x="377" y="814" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">C4 Both Seen Test (5.0%)</text>
+      <text x="377" y="832" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="11">{c4_n:,} pairs &bull; Both in C1 train set</text>
 
-    # Bottom Legend Card
-    svg_parts.append('<rect x="30" y="796" width="1140" height="46" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" filter="url(#shadow-card)" />')
+      <!-- C2 Metric -->
+      <circle cx="660" cy="810" r="7" fill="#d97706" />
+      <text x="677" y="814" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">C2 One Unseen Test (5.0%)</text>
+      <text x="677" y="832" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="11">{c2_n:,} pairs &bull; 1 in V_train, 1 in V_test</text>
 
-    legend_items = [
-        ("circle", "#1d4ed8", "V_train Protein Node"),
-        ("circle", "#059669", "V_test Protein Node"),
-        ("line", "#2563eb", "C1 Edge (Train-Train Interaction, 80%)"),
-        ("line", "#ea580c", "C2 Edge (Train-Test Crossing Interaction, 10%)"),
-        ("line", "#059669", "C3 Edge (Test-Test Unseen Interaction, 10%)"),
-    ]
-    lx = 55
-    for ltype, col, label in legend_items:
-        if ltype == "circle":
-            svg_parts.append(f'<circle cx="{lx}" cy="819" r="6" fill="{col}" stroke="#1e293b" stroke-width="1" />')
-            svg_parts.append(f'<text x="{lx + 14}" y="823" fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600">{label}</text>')
-            lx += len(label) * 7.3 + 36
-        else:
-            svg_parts.append(f'<line x1="{lx}" y1="819" x2="{lx + 22}" y2="819" stroke="{col}" stroke-width="2.5" />')
-            svg_parts.append(f'<text x="{lx + 30}" y="823" fill="#334155" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600">{label}</text>')
-            lx += len(label) * 7.3 + 46
+      <!-- C3 Metric -->
+      <circle cx="960" cy="810" r="7" fill="#dc2626" />
+      <text x="977" y="814" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">C3 Both Unseen Test (5.0%)</text>
+      <text x="977" y="832" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="11">{c3_n:,} pairs &bull; Both in V_test (zero train overlap)</text>
 
-    svg_parts.append('</svg>')
+      <text x="620" y="860" text-anchor="middle" fill="#94a3b8" font-family="Arial, Helvetica, sans-serif" font-size="10">High-resolution scientific benchmark diagram &bull; Publication &amp; presentation ready</text>
+    ''')
 
+    svg.append('</svg>')
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(svg_parts))
+        f.write("\n".join(svg))
+    print(f"Generated Vector SVG: {out_path}")
 
 
-def build_interactive_html(all_data_json, out_html_path):
-    """
-    Builds a standalone interactive HTML application using Tailwind CSS and HTML5 Canvas.
-    Styled cleanly with pure white background and 300 DPI publication-quality PNG export.
-    """
+def generate_html_app(data, core, out_path):
+    """Generate interactive HTML5 viewer application."""
+    bundle = {
+        "theta": data["theta"],
+        "cmin": data["cmin"],
+        "total_pairs": len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"]),
+        "total_prots": len(data["v_train"].union(data["v_test"])),
+        "c1_count": len(data["c1_pairs"]),
+        "c2_count": len(data["c2_pairs"]),
+        "c3_count": len(data["c3_pairs"]),
+        "c4_count": len(data["c4_pairs"]),
+        "c1_pct": len(data["c1_pairs"]) / (len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"])) * 100.0,
+        "c2_pct": len(data["c2_pairs"]) / (len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"])) * 100.0,
+        "c3_pct": len(data["c3_pairs"]) / (len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"])) * 100.0,
+        "c4_pct": len(data["c4_pairs"]) / (len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]) + len(data["c4_pairs"])) * 100.0,
+        "v_train_size": len(data["v_train"]),
+        "v_test_size": len(data["v_test"]),
+        "core": core
+    }
+
+    bundle_json = json.dumps(bundle)
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Arabidopsis PPI C1/C2/C3 Partition Interactive Visualizer</title>
-  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arabidopsis PPI Network — C1/C2/C3/C4 Partition Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {{
-      user-select: none;
-      -webkit-user-select: none;
+    body, html {{
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }}
     canvas {{
@@ -347,31 +377,19 @@ def build_interactive_html(all_data_json, out_html_path):
       </div>
       <div>
         <h1 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          Arabidopsis thaliana PPI Network — C1/C2/C3 Partition Visualizer
+          Arabidopsis thaliana PPI Network — C1/C2/C3/C4 Partition Visualizer
           <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
             Zero-Leakage Verified
           </span>
         </h1>
         <p class="text-xs text-slate-500">
-          Scientific presentation &amp; journal-ready visualization across 8 identity (θ) and coverage (c_min) sweeps
+          Scientific presentation &amp; journal-ready visualization (θ = {data['theta']}, c_min = {data['cmin']})
         </p>
       </div>
     </div>
 
-    <!-- Sweep Selector & Export Controls -->
+    <!-- Controls -->
     <div class="flex items-center gap-3">
-      <label class="text-xs font-semibold text-slate-600">Sweep Condition:</label>
-      <select id="sweep-select" class="bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-2xs">
-        <option value="0_40_0_50">θ = 0.40, c = 0.50 (Primary Fold-Level Benchmark)</option>
-        <option value="0_40_0_70">θ = 0.40, c = 0.70 (Fold-Level, 70% Cov)</option>
-        <option value="0_40_0_80">θ = 0.40, c = 0.80 (Fold-Level, 80% Cov)</option>
-        <option value="0_40_0_90">θ = 0.40, c = 0.90 (Fold-Level, 90% Cov)</option>
-        <option value="0_70_0_50">θ = 0.70, c = 0.50 (Relaxed Paralog Benchmark)</option>
-        <option value="0_70_0_70">θ = 0.70, c = 0.70 (Paralog, 70% Cov)</option>
-        <option value="0_70_0_80">θ = 0.70, c = 0.80 (Paralog, 80% Cov)</option>
-        <option value="0_70_0_90">θ = 0.70, c = 0.90 (Paralog, 90% Cov)</option>
-      </select>
-
       <button id="btn-reset" class="bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-300 shadow-2xs transition">
         Reset View
       </button>
@@ -387,27 +405,32 @@ def build_interactive_html(all_data_json, out_html_path):
     <div class="flex items-center gap-6">
       <div class="flex items-center gap-2">
         <span class="text-slate-500 font-medium">Total Pairs:</span>
-        <span id="metric-total-pairs" class="font-bold text-slate-900 text-sm">--</span>
+        <span class="font-bold text-slate-900 text-sm">{bundle['total_pairs']:,}</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-slate-500 font-medium">Unique Proteins:</span>
-        <span id="metric-total-prots" class="font-bold text-slate-900 text-sm">--</span>
+        <span class="font-bold text-slate-900 text-sm">{bundle['total_prots']:,}</span>
       </div>
       <div class="h-4 w-px bg-slate-300"></div>
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
         <span class="text-slate-600 font-medium">C1 Train (u,v ∈ V_train):</span>
-        <span id="metric-c1" class="font-bold text-blue-700">-- (80.0%)</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block"></span>
-        <span class="text-slate-600 font-medium">C2 Cut (u ∈ V_train, v ∈ V_test):</span>
-        <span id="metric-c2" class="font-bold text-amber-700">-- (10.0%)</span>
+        <span class="font-bold text-blue-700">{bundle['c1_count']:,} ({bundle['c1_pct']:.1f}%)</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
-        <span class="text-slate-600 font-medium">C3 Test (u,v ∈ V_test):</span>
-        <span id="metric-c3" class="font-bold text-emerald-700">-- (10.0%)</span>
+        <span class="text-slate-600 font-medium">C4 Both Seen Test (u,v ∈ C1):</span>
+        <span class="font-bold text-emerald-700">{bundle['c4_count']:,} ({bundle['c4_pct']:.1f}%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C2 One Unseen Test:</span>
+        <span class="font-bold text-amber-700">{bundle['c2_count']:,} ({bundle['c2_pct']:.1f}%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C3 Both Unseen Test:</span>
+        <span class="font-bold text-red-700">{bundle['c3_count']:,} ({bundle['c3_pct']:.1f}%)</span>
       </div>
     </div>
 
@@ -416,15 +439,19 @@ def build_interactive_html(all_data_json, out_html_path):
       <span class="text-slate-500 font-medium">Layer Filters:</span>
       <label class="flex items-center gap-1.5 cursor-pointer text-blue-700 hover:text-blue-800 font-medium">
         <input type="checkbox" id="toggle-c1" checked class="rounded border-slate-300 text-blue-600 focus:ring-0" />
-        <span>C1 Edges</span>
+        <span>C1 Edges (85%)</span>
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer text-emerald-700 hover:text-emerald-800 font-medium">
+        <input type="checkbox" id="toggle-c4" checked class="rounded border-slate-300 text-emerald-600 focus:ring-0" />
+        <span>C4 Edges (5%)</span>
       </label>
       <label class="flex items-center gap-1.5 cursor-pointer text-amber-700 hover:text-amber-800 font-medium">
         <input type="checkbox" id="toggle-c2" checked class="rounded border-slate-300 text-amber-600 focus:ring-0" />
-        <span>C2 Edges</span>
+        <span>C2 Edges (5%)</span>
       </label>
-      <label class="flex items-center gap-1.5 cursor-pointer text-emerald-700 hover:text-emerald-800 font-medium">
-        <input type="checkbox" id="toggle-c3" checked class="rounded border-slate-300 text-emerald-600 focus:ring-0" />
-        <span>C3 Edges</span>
+      <label class="flex items-center gap-1.5 cursor-pointer text-red-700 hover:text-red-800 font-medium">
+        <input type="checkbox" id="toggle-c3" checked class="rounded border-slate-300 text-red-600 focus:ring-0" />
+        <span>C3 Edges (5%)</span>
       </label>
     </div>
   </section>
@@ -433,7 +460,7 @@ def build_interactive_html(all_data_json, out_html_path):
   <main class="relative flex-1 w-full overflow-hidden bg-white flex">
     <canvas id="graph-canvas" class="w-full h-full block bg-white"></canvas>
 
-    <!-- Floating Tooltip / Inspector Card (Journal Style) -->
+    <!-- Floating Tooltip / Inspector Card -->
     <div id="inspector-card" class="absolute top-4 right-4 w-72 bg-white/95 border border-slate-300 rounded-xl p-4 shadow-lg pointer-events-none transition-opacity duration-150 opacity-0 z-20 backdrop-blur-xs">
       <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
         <span id="node-id" class="font-mono font-bold text-sm text-slate-900">--</span>
@@ -448,41 +475,32 @@ def build_interactive_html(all_data_json, out_html_path):
           <span class="text-slate-500">Total Degree:</span>
           <span id="node-degree" class="font-bold text-slate-900">--</span>
         </div>
-        <div class="flex justify-between text-blue-700 font-medium">
-          <span>C1 Interactions:</span>
-          <span id="node-c1">--</span>
+        <div class="flex justify-between text-blue-700">
+          <span>C1 (Train) Edges:</span>
+          <span id="node-deg-c1" class="font-semibold">--</span>
         </div>
-        <div class="flex justify-between text-amber-700 font-medium">
-          <span>C2 Cut Interactions:</span>
-          <span id="node-c2">--</span>
+        <div class="flex justify-between text-emerald-700">
+          <span>C4 (Seen Test) Edges:</span>
+          <span id="node-deg-c4" class="font-semibold">--</span>
         </div>
-        <div class="flex justify-between text-emerald-700 font-medium">
-          <span>C3 Interactions:</span>
-          <span id="node-c3">--</span>
+        <div class="flex justify-between text-amber-700">
+          <span>C2 (Cut Boundary) Edges:</span>
+          <span id="node-deg-c2" class="font-semibold">--</span>
+        </div>
+        <div class="flex justify-between text-red-700">
+          <span>C3 (Unseen Test) Edges:</span>
+          <span id="node-deg-c3" class="font-semibold">--</span>
         </div>
       </div>
-    </div>
-
-    <!-- Help Info Overlay -->
-    <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-xs border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-500 flex items-center gap-3 shadow-xs">
-      <span>🖱 Drag to Pan</span>
-      <span>•</span>
-      <span>📜 Scroll to Zoom</span>
-      <span>•</span>
-      <span>👆 Hover node for details</span>
-      <span>•</span>
-      <span>📸 Export produces clean 300 DPI white image</span>
     </div>
   </main>
 
   <script>
-    const GRAPH_DATA = {all_data_json};
+    const DATA = {bundle_json};
 
     const canvas = document.getElementById('graph-canvas');
     const ctx = canvas.getContext('2d');
-
-    let currentSweepKey = '0_40_0_50';
-    let currentData = null;
+    const inspector = document.getElementById('inspector-card');
 
     let scale = 1.0;
     let panX = 0;
@@ -492,228 +510,197 @@ def build_interactive_html(all_data_json, out_html_path):
     let startY = 0;
     let hoveredNode = null;
 
-    const sweepSelect = document.getElementById('sweep-select');
-    const toggleC1 = document.getElementById('toggle-c1');
-    const toggleC2 = document.getElementById('toggle-c2');
-    const toggleC3 = document.getElementById('toggle-c3');
-    const btnReset = document.getElementById('btn-reset');
-    const btnExport = document.getElementById('btn-export');
-
-    const inspector = document.getElementById('inspector-card');
-    const nodeId = document.getElementById('node-id');
-    const nodeTag = document.getElementById('node-tag');
-    const nodePartition = document.getElementById('node-partition');
-    const nodeDegree = document.getElementById('node-degree');
-    const nodeC1 = document.getElementById('node-c1');
-    const nodeC2 = document.getElementById('node-c2');
-    const nodeC3 = document.getElementById('node-c3');
-
     function resizeCanvas() {{
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.parentElement.clientWidth * dpr;
+      canvas.height = canvas.parentElement.clientHeight * dpr;
+      ctx.scale(dpr, dpr);
       render();
     }}
 
-    function updateSweep() {{
-      currentSweepKey = sweepSelect.value;
-      currentData = GRAPH_DATA[currentSweepKey];
+    window.addEventListener('resize', resizeCanvas);
 
-      document.getElementById('metric-total-pairs').textContent = currentData.stats.total_pairs.toLocaleString();
-      document.getElementById('metric-total-prots').textContent = currentData.stats.total_proteins.toLocaleString();
-      document.getElementById('metric-c1').textContent = `${{currentData.stats.c1_pairs.toLocaleString()}} (${{currentData.stats.c1_pct}})`;
-      document.getElementById('metric-c2').textContent = `${{currentData.stats.c2_pairs.toLocaleString()}} (${{currentData.stats.c2_pct}})`;
-      document.getElementById('metric-c3').textContent = `${{currentData.stats.c3_pairs.toLocaleString()}} (${{currentData.stats.c3_pct}})`;
-
-      resetView();
+    function toScreen(x, y) {{
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      return {{
+        x: (x - 620) * scale + w / 2 + panX,
+        y: (y - 470) * scale + h / 2 + panY
+      }};
     }}
 
-    function resetView() {{
-      const rect = canvas.getBoundingClientRect();
-      scale = Math.min(rect.width / 1300, rect.height / 950);
-      panX = (rect.width - 1200 * scale) / 2;
-      panY = (rect.height - 860 * scale) / 2;
-      render();
-    }}
-
-    function drawNetwork(targetCtx, targetData, isExport) {{
-      const nodes = targetData.core.nodes;
-
-      // Subtle backing circles (Scientific Presentation Style)
-      targetCtx.beginPath();
-      targetCtx.arc(360, 450, 240, 0, Math.PI * 2);
-      targetCtx.fillStyle = '#f8fafc';
-      targetCtx.fill();
-      targetCtx.lineWidth = 1.5;
-      targetCtx.strokeStyle = '#bfdbfe';
-      targetCtx.setLineDash([5, 5]);
-      targetCtx.stroke();
-      targetCtx.setLineDash([]);
-
-      targetCtx.beginPath();
-      targetCtx.arc(840, 450, 240, 0, Math.PI * 2);
-      targetCtx.fillStyle = '#f0fdf4';
-      targetCtx.fill();
-      targetCtx.lineWidth = 1.5;
-      targetCtx.strokeStyle = '#bbf7d0';
-      targetCtx.setLineDash([5, 5]);
-      targetCtx.stroke();
-      targetCtx.setLineDash([]);
-
-      // Cluster Headers
-      targetCtx.font = 'bold 16px Arial, Helvetica, sans-serif';
-      targetCtx.fillStyle = '#1e40af';
-      targetCtx.textAlign = 'center';
-      targetCtx.fillText('TRAINING PARTITION (V_train)', 360, 180);
-      targetCtx.font = '12px Arial, Helvetica, sans-serif';
-      targetCtx.fillStyle = '#64748b';
-      targetCtx.fillText(`${{targetData.stats.v_train_total.toLocaleString()}} Unique Proteins (80% Edge Target)`, 360, 202);
-
-      targetCtx.font = 'bold 16px Arial, Helvetica, sans-serif';
-      targetCtx.fillStyle = '#065f46';
-      targetCtx.fillText('TEST PARTITION (V_test)', 840, 180);
-      targetCtx.font = '12px Arial, Helvetica, sans-serif';
-      targetCtx.fillStyle = '#64748b';
-      targetCtx.fillText(`${{targetData.stats.v_test_total.toLocaleString()}} Unique Proteins (10% Edge Target)`, 840, 202);
-
-      // Boundary cut line
-      targetCtx.beginPath();
-      targetCtx.moveTo(600, 160);
-      targetCtx.lineTo(600, 750);
-      targetCtx.strokeStyle = 'rgba(234, 88, 12, 0.4)';
-      targetCtx.lineWidth = 1.8;
-      targetCtx.setLineDash([6, 6]);
-      targetCtx.stroke();
-      targetCtx.setLineDash([]);
-
-      targetCtx.font = 'bold 12px Arial, Helvetica, sans-serif';
-      targetCtx.fillStyle = '#c2410c';
-      targetCtx.fillText('ZERO-HOMOLOGY CUT INTERFACE (C2 Cut)', 600, 775);
-
-      // 1. Draw C1 Edges
-      if (isExport || toggleC1.checked) {{
-        targetCtx.beginPath();
-        targetCtx.strokeStyle = 'rgba(37, 99, 235, 0.32)';
-        targetCtx.lineWidth = 1.2;
-        targetData.core.sub_c1.forEach(([a, b]) => {{
-          if (nodes[a] && nodes[b]) {{
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-          }}
-        }});
-        targetCtx.stroke();
-      }}
-
-      // 2. Draw C3 Edges
-      if (isExport || toggleC3.checked) {{
-        targetCtx.beginPath();
-        targetCtx.strokeStyle = 'rgba(5, 150, 105, 0.42)';
-        targetCtx.lineWidth = 1.3;
-        targetData.core.sub_c3.forEach(([a, b]) => {{
-          if (nodes[a] && nodes[b]) {{
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-          }}
-        }});
-        targetCtx.stroke();
-      }}
-
-      // 3. Draw C2 Edges (Prominent Vermilion/Orange)
-      if (isExport || toggleC2.checked) {{
-        targetCtx.beginPath();
-        targetCtx.strokeStyle = 'rgba(234, 88, 12, 0.85)';
-        targetCtx.lineWidth = 1.8;
-        targetData.core.sub_c2.forEach(([a, b]) => {{
-          if (nodes[a] && nodes[b]) {{
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-          }}
-        }});
-        targetCtx.stroke();
-      }}
-
-      // 4. Highlight hovered node connections
-      if (!isExport && hoveredNode && nodes[hoveredNode]) {{
-        targetCtx.lineWidth = 2.4;
-        targetData.core.sub_c1.forEach(([a, b]) => {{
-          if (a === hoveredNode || b === hoveredNode) {{
-            targetCtx.beginPath();
-            targetCtx.strokeStyle = '#1d4ed8';
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-            targetCtx.stroke();
-          }}
-        }});
-        targetData.core.sub_c2.forEach(([a, b]) => {{
-          if (a === hoveredNode || b === hoveredNode) {{
-            targetCtx.beginPath();
-            targetCtx.strokeStyle = '#c2410c';
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-            targetCtx.stroke();
-          }}
-        }});
-        targetData.core.sub_c3.forEach(([a, b]) => {{
-          if (a === hoveredNode || b === hoveredNode) {{
-            targetCtx.beginPath();
-            targetCtx.strokeStyle = '#047857';
-            targetCtx.moveTo(nodes[a].x, nodes[a].y);
-            targetCtx.lineTo(nodes[b].x, nodes[b].y);
-            targetCtx.stroke();
-          }}
-        }});
-      }}
-
-      // 5. Draw Nodes
-      for (const [id, m] of Object.entries(nodes)) {{
-        const r = Math.min(12, Math.max(4.5, 4 + Math.sqrt(m.total_deg)));
-        const isHovered = (!isExport && id === hoveredNode);
-
-        targetCtx.beginPath();
-        targetCtx.arc(m.x, m.y, isHovered ? r + 3 : r, 0, Math.PI * 2);
-
-        if (m.is_train) {{
-          targetCtx.fillStyle = '#1d4ed8';
-          targetCtx.strokeStyle = '#1e3a8a';
-        }} else {{
-          targetCtx.fillStyle = '#059669';
-          targetCtx.strokeStyle = '#064e3b';
-        }}
-        targetCtx.lineWidth = isHovered ? 2.5 : 1.3;
-        targetCtx.fill();
-        targetCtx.stroke();
-
-        // Label high-degree nodes
-        if (m.total_deg >= 8 || isHovered) {{
-          targetCtx.font = isHovered ? 'bold 11px Arial, Helvetica, sans-serif' : 'bold 9.5px Arial, Helvetica, sans-serif';
-          targetCtx.fillStyle = '#0f172a';
-          targetCtx.textAlign = 'center';
-          targetCtx.fillText(id, m.x, m.y - r - 4);
-        }}
-      }}
+    function toWorld(sx, sy) {{
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      return {{
+        x: (sx - w / 2 - panX) / scale + 620,
+        y: (sy - h / 2 - panY) / scale + 470
+      }};
     }}
 
     function render() {{
-      if (!currentData) return;
-
       const dpr = window.devicePixelRatio || 1;
-      ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
 
-      // Force pure white canvas background
+      ctx.clearRect(0, 0, w, h);
+
+      // Background - Pure White
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, w, h);
 
-      ctx.scale(dpr, dpr);
+      const showC1 = document.getElementById('toggle-c1').checked;
+      const showC4 = document.getElementById('toggle-c4').checked;
+      const showC2 = document.getElementById('toggle-c2').checked;
+      const showC3 = document.getElementById('toggle-c3').checked;
 
-      ctx.save();
-      ctx.translate(panX, panY);
-      ctx.scale(scale, scale);
+      const nodes = DATA.core.nodes;
 
-      drawNetwork(ctx, currentData, false);
+      // 1. Cluster Backdrops
+      const pTrain = toScreen(380, 470);
+      const rTrain = 255 * scale;
+      ctx.beginPath();
+      ctx.arc(pTrain.x, pTrain.y, rTrain, 0, Math.PI * 2);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fill();
+      ctx.strokeStyle = '#bfdbfe';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-      ctx.restore();
-      ctx.restore();
+      const pTest = toScreen(860, 470);
+      const rTest = 235 * scale;
+      ctx.beginPath();
+      ctx.arc(pTest.x, pTest.y, rTest, 0, Math.PI * 2);
+      ctx.fillStyle = '#fef2f2';
+      ctx.fill();
+      ctx.strokeStyle = '#fecaca';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Partition Boundary Line
+      const pTop = toScreen(620, 200);
+      const pBot = toScreen(620, 740);
+      ctx.beginPath();
+      ctx.moveTo(pTop.x, pTop.y);
+      ctx.lineTo(pBot.x, pBot.y);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2 * scale;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Section Labels
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1e40af';
+      ctx.fillText('TRAINING PARTITION (V_train)', pTrain.x, pTrain.y - rTrain - 15);
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(DATA.v_train_size.toLocaleString() + ' Unique Proteins (85% C1 Train + 5% C4 Seen Test)', pTrain.x, pTrain.y - rTrain + 2);
+
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.fillStyle = '#991b1b';
+      ctx.fillText('TEST PARTITION (V_test)', pTest.x, pTest.y - rTest - 15);
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(DATA.v_test_size.toLocaleString() + ' Unique Proteins (5% C3 Both Unseen Test)', pTest.x, pTest.y - rTest + 2);
+
+      // 2. Render Edges
+      if (showC1) {{
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 1.2 * scale;
+        ctx.globalAlpha = 0.55;
+        DATA.core.sub_c1.forEach(([a, b]) => {{
+          if (nodes[a] && nodes[b]) {{
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }}
+        }});
+      }}
+
+      if (showC4) {{
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 2.0 * scale;
+        ctx.globalAlpha = 0.85;
+        ctx.setLineDash([4, 2]);
+        DATA.core.sub_c4.forEach(([a, b]) => {{
+          if (nodes[a] && nodes[b]) {{
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }}
+        }});
+        ctx.setLineDash([]);
+      }}
+
+      if (showC3) {{
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.globalAlpha = 0.75;
+        DATA.core.sub_c3.forEach(([a, b]) => {{
+          if (nodes[a] && nodes[b]) {{
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }}
+        }});
+      }}
+
+      if (showC2) {{
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1.8 * scale;
+        ctx.globalAlpha = 0.80;
+        DATA.core.sub_c2.forEach(([a, b]) => {{
+          if (nodes[a] && nodes[b]) {{
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }}
+        }});
+      }}
+
+      ctx.globalAlpha = 1.0;
+
+      // 3. Render Nodes
+      for (const [id, m] of Object.entries(nodes)) {{
+        const p = toScreen(m.x, m.y);
+        const r = Math.min(11, Math.max(5, 4 + Math.sqrt(m.total_deg))) * scale;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = m.is_train ? '#1d4ed8' : '#b91c1c';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+
+        if (hoveredNode && hoveredNode.id === id) {{
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }}
+      }}
     }}
 
     // Mouse Interaction
@@ -735,264 +722,139 @@ def build_interactive_html(all_data_json, out_html_path):
         return;
       }}
 
-      if (!currentData) return;
-
       const rect = canvas.getBoundingClientRect();
-      const mouseX = (e.clientX - rect.left - panX) / scale;
-      const mouseY = (e.clientY - rect.top - panY) / scale;
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const world = toWorld(mx, my);
 
       let found = null;
-      for (const [id, m] of Object.entries(currentData.core.nodes)) {{
-        const r = Math.min(12, Math.max(4.5, 4 + Math.sqrt(m.total_deg))) + 4;
-        const dist = Math.hypot(m.x - mouseX, m.y - mouseY);
-        if (dist <= r) {{
-          found = id;
+      for (const [id, m] of Object.entries(DATA.core.nodes)) {{
+        const dx = m.x - world.x;
+        const dy = m.y - world.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const r = Math.min(11, Math.max(5, 4 + Math.sqrt(m.total_deg)));
+        if (dist <= r + 4) {{
+          found = m;
           break;
         }}
       }}
 
-      if (found !== hoveredNode) {{
-        hoveredNode = found;
-        if (hoveredNode) {{
-          const m = currentData.core.nodes[hoveredNode];
-          nodeId.textContent = hoveredNode;
-          nodeTag.textContent = m.is_train ? 'V_train' : 'V_test';
-          nodeTag.className = m.is_train
-            ? 'text-xs px-2 py-0.5 rounded font-semibold bg-blue-50 text-blue-800 border border-blue-200'
-            : 'text-xs px-2 py-0.5 rounded font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200';
-          nodePartition.textContent = m.partition;
-          nodeDegree.textContent = m.total_deg;
-          nodeC1.textContent = m.deg_c1;
-          nodeC2.textContent = m.deg_c2;
-          nodeC3.textContent = m.deg_c3;
-          inspector.style.opacity = '1';
-        }} else {{
-          inspector.style.opacity = '0';
-        }}
-        render();
+      hoveredNode = found;
+      if (found) {{
+        inspector.style.opacity = '1';
+        document.getElementById('node-id').textContent = found.id;
+        document.getElementById('node-tag').textContent = found.is_train ? 'V_train' : 'V_test';
+        document.getElementById('node-partition').textContent = found.partition;
+        document.getElementById('node-degree').textContent = found.total_deg;
+        document.getElementById('node-deg-c1').textContent = found.deg_c1;
+        document.getElementById('node-deg-c4').textContent = found.deg_c4;
+        document.getElementById('node-deg-c2').textContent = found.deg_c2;
+        document.getElementById('node-deg-c3').textContent = found.deg_c3;
+      }} else {{
+        inspector.style.opacity = '0';
       }}
+      render();
     }});
 
     canvas.addEventListener('wheel', (e) => {{
       e.preventDefault();
-      const zoomFactor = 1.1;
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      const oldScale = scale;
-      if (e.deltaY < 0) {{
-        scale = Math.min(scale * zoomFactor, 5.0);
-      }} else {{
-        scale = Math.max(scale / zoomFactor, 0.3);
-      }}
-
-      panX = mouseX - (mouseX - panX) * (scale / oldScale);
-      panY = mouseY - (mouseY - panY) * (scale / oldScale);
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      scale = Math.min(5.0, Math.max(0.3, scale * zoomFactor));
       render();
     }}, {{ passive: false }});
 
-    sweepSelect.addEventListener('change', updateSweep);
-    toggleC1.addEventListener('change', render);
-    toggleC2.addEventListener('change', render);
-    toggleC3.addEventListener('change', render);
-    btnReset.addEventListener('click', resetView);
-
-    // Export 300 DPI Journal-Ready Image
-    btnExport.addEventListener('click', () => {{
-      const expCanvas = document.createElement('canvas');
-      const scaleFactor = 3; // 300 DPI print quality multiplier
-      expCanvas.width = 1200 * scaleFactor;
-      expCanvas.height = 860 * scaleFactor;
-      const expCtx = expCanvas.getContext('2d');
-
-      // Pure White Background
-      expCtx.fillStyle = '#ffffff';
-      expCtx.fillRect(0, 0, expCanvas.width, expCanvas.height);
-
-      expCtx.scale(scaleFactor, scaleFactor);
-
-      // 1. Draw Network
-      drawNetwork(expCtx, currentData, true);
-
-      // 2. Draw Top Journal Title & Header Box
-      expCtx.fillStyle = '#ffffff';
-      expCtx.strokeStyle = '#cbd5e1';
-      expCtx.lineWidth = 1;
-      expCtx.beginPath();
-      expCtx.roundRect(30, 24, 1140, 96, [8]);
-      expCtx.fill();
-      expCtx.stroke();
-
-      expCtx.font = 'bold 19px Arial, Helvetica, sans-serif';
-      expCtx.fillStyle = '#0f172a';
-      expCtx.textAlign = 'left';
-      expCtx.fillText('Arabidopsis thaliana PPI Network — C1/C2/C3 Homology Partition', 52, 56);
-
-      expCtx.font = '12.5px Arial, Helvetica, sans-serif';
-      expCtx.fillStyle = '#475569';
-      expCtx.fillText(`Non-Redundant Interactome | Homology Cutoff: Identity θ = ${{currentData.theta}}, Coverage c_min = ${{currentData.cmin}} | Zero Homology Leakage (V_C1 ∩ V_C3 = ∅)`, 52, 80);
-
-      // Top right metric pills
-      const pills = [
-        [`Total: ${{currentData.stats.total_pairs.toLocaleString()}} Pairs`, '#f1f5f9', '#334155', '#cbd5e1'],
-        [`C1 Train: ${{currentData.stats.c1_pairs.toLocaleString()}} (${{currentData.stats.c1_pct}})`, '#eff6ff', '#1d4ed8', '#bfdbfe'],
-        [`C2 Cut: ${{currentData.stats.c2_pairs.toLocaleString()}} (${{currentData.stats.c2_pct}})`, '#fffbeb', '#b45309', '#fde68a'],
-        [`C3 Test: ${{currentData.stats.c3_pairs.toLocaleString()}} (${{currentData.stats.c3_pct}})`, '#ecfdf5', '#047857', '#a7f3d0'],
-        ['Status: PASS (0 Leak)', '#f0fdf4', '#15803d', '#86efac'],
-      ];
-      let px = 560;
-      pills.forEach(([label, bg, fg, border]) => {{
-        const pill_w = label.length * 7.4 + 18;
-        expCtx.fillStyle = bg;
-        expCtx.strokeStyle = border;
-        expCtx.lineWidth = 1;
-        expCtx.beginPath();
-        expCtx.roundRect(px, 44, pill_w, 28, [14]);
-        expCtx.fill();
-        expCtx.stroke();
-
-        expCtx.font = 'bold 11.5px Arial, Helvetica, sans-serif';
-        expCtx.fillStyle = fg;
-        expCtx.textAlign = 'center';
-        expCtx.fillText(label, px + pill_w / 2, 62.5);
-        px += pill_w + 10;
-      }});
-
-      // 3. Draw Bottom Legend Box
-      expCtx.fillStyle = '#ffffff';
-      expCtx.strokeStyle = '#cbd5e1';
-      expCtx.lineWidth = 1;
-      expCtx.beginPath();
-      expCtx.roundRect(30, 796, 1140, 46, [8]);
-      expCtx.fill();
-      expCtx.stroke();
-
-      const legend = [
-        ['circle', '#1d4ed8', 'V_train Protein Node'],
-        ['circle', '#059669', 'V_test Protein Node'],
-        ['line', '#2563eb', 'C1 Edge (Train-Train Interaction, 80%)'],
-        ['line', '#ea580c', 'C2 Edge (Train-Test Crossing Interaction, 10%)'],
-        ['line', '#059669', 'C3 Edge (Test-Test Unseen Interaction, 10%)'],
-      ];
-      let lx = 55;
-      legend.forEach(([ltype, col, label]) => {{
-        if (ltype === 'circle') {{
-          expCtx.beginPath();
-          expCtx.arc(lx, 819, 6, 0, Math.PI * 2);
-          expCtx.fillStyle = col;
-          expCtx.strokeStyle = '#1e293b';
-          expCtx.lineWidth = 1;
-          expCtx.fill();
-          expCtx.stroke();
-
-          expCtx.font = '600 12px Arial, Helvetica, sans-serif';
-          expCtx.fillStyle = '#334155';
-          expCtx.textAlign = 'left';
-          expCtx.fillText(label, lx + 14, 823);
-          lx += label.length * 7.3 + 36;
-        }} else {{
-          expCtx.beginPath();
-          expCtx.moveTo(lx, 819);
-          expCtx.lineTo(lx + 22, 819);
-          expCtx.strokeStyle = col;
-          expCtx.lineWidth = 2.5;
-          expCtx.stroke();
-
-          expCtx.font = '600 12px Arial, Helvetica, sans-serif';
-          expCtx.fillStyle = '#334155';
-          expCtx.textAlign = 'left';
-          expCtx.fillText(label, lx + 30, 823);
-          lx += label.length * 7.3 + 46;
-        }}
-      }});
-
-      const link = document.createElement('a');
-      link.download = `c123_partition_id${{currentSweepKey}}_scientific_300dpi.png`;
-      link.href = expCanvas.toDataURL('image/png');
-      link.click();
+    document.getElementById('btn-reset').addEventListener('click', () => {{
+      scale = 1.0;
+      panX = 0;
+      panY = 0;
+      hoveredNode = null;
+      render();
     }});
 
-    window.addEventListener('resize', resizeCanvas);
+    // Layer checkboxes
+    ['toggle-c1', 'toggle-c4', 'toggle-c2', 'toggle-c3'].forEach(id => {{
+      document.getElementById(id).addEventListener('change', render);
+    }});
 
-    // Initial Load
-    updateSweep();
+    // 300 DPI Export
+    document.getElementById('btn-export').addEventListener('click', () => {{
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 3600;
+      exportCanvas.height = 2400;
+      const eCtx = exportCanvas.getContext('2d');
+
+      eCtx.fillStyle = '#ffffff';
+      eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+      const prevScale = scale;
+      const prevPanX = panX;
+      const prevPanY = panY;
+
+      scale = 3.0;
+      panX = 0;
+      panY = 0;
+
+      // Draw directly onto high-res canvas
+      const oldCanvas = canvas;
+      render();
+
+      const link = document.createElement('a');
+      link.download = `c1234_ppi_network_id${{DATA.theta.replace('.', '_')}}_cov${{DATA.cmin.replace('.', '_')}}_300dpi.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+
+      scale = prevScale;
+      panX = prevPanX;
+      panY = prevPanY;
+      render();
+    }});
+
+    // Initialize
     resizeCanvas();
   </script>
 </body>
 </html>
 """
-    with open(out_html_path, "w", encoding="utf-8") as f:
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(html_content)
+    print(f"Generated Interactive HTML: {out_path}")
 
 
 def main():
-    print("=" * 80)
-    print("    AraPPLM: Generating C1/C2/C3 Partition Visualizations (Scientific Theme)")
-    print("=" * 80)
-
-    os.makedirs(OUT_FIG_DIR, exist_ok=True)
-    os.makedirs(OUT_DATA_FIG_DIR, exist_ok=True)
-
-    all_data_export = {}
-
-    for th, cm in SWEEPS:
-        sweep_key = f"{th}_{cm}"
-        print(f"Processing sweep: theta = {th.replace('_', '.')}, c_min = {cm.replace('_', '.')} ...")
-
-        data = load_partition_data(th, cm)
-        core = compute_core_subgraph(data, n_train=60, n_test=60)
-
-        # 1. Generate standalone vector SVG
-        svg_filename = f"c123_network_id{th}_cov{cm}.svg"
-        svg_path = os.path.join(OUT_FIG_DIR, svg_filename)
-        data_svg_path = os.path.join(OUT_DATA_FIG_DIR, svg_filename)
-
-        generate_svg(data, core, svg_path)
-        generate_svg(data, core, data_svg_path)
-
-        # 2. Add to JSON package for HTML visualizer
-        all_data_export[sweep_key] = {
-            "theta": data["theta"],
-            "cmin": data["cmin"],
-            "stats": {
-                "total_pairs": len(data["c1_pairs"]) + len(data["c2_pairs"]) + len(data["c3_pairs"]),
-                "total_proteins": len(data["v_train"].union(data["v_test"])),
-                "c1_pairs": len(data["c1_pairs"]),
-                "c1_pct": f"{len(data['c1_pairs']) / (len(data['c1_pairs']) + len(data['c2_pairs']) + len(data['c3_pairs'])) * 100:.2f}%",
-                "c2_pairs": len(data["c2_pairs"]),
-                "c2_pct": f"{len(data['c2_pairs']) / (len(data['c1_pairs']) + len(data['c2_pairs']) + len(data['c3_pairs'])) * 100:.2f}%",
-                "c3_pairs": len(data["c3_pairs"]),
-                "c3_pct": f"{len(data['c3_pairs']) / (len(data['c1_pairs']) + len(data['c2_pairs']) + len(data['c3_pairs'])) * 100:.2f}%",
-                "v_train_total": len(data["v_train"]),
-                "v_test_total": len(data["v_test"]),
-            },
-            "core": {
-                "nodes": core["nodes"],
-                "sub_c1": [[a, b] for a, b, _ in core["sub_c1"]],
-                "sub_c2": [[a, b] for a, b, _ in core["sub_c2"]],
-                "sub_c3": [[a, b] for a, b, _ in core["sub_c3"]],
-            }
-        }
-
-    # 3. Build standalone interactive HTML
-    all_data_json_str = json.dumps(all_data_export)
-    html_out = os.path.join(OUT_FIG_DIR, "c123_interactive_network_viewer.html")
-    data_html_out = os.path.join(OUT_DATA_FIG_DIR, "c123_interactive_network_viewer.html")
-    build_interactive_html(all_data_json_str, html_out)
-    build_interactive_html(all_data_json_str, data_html_out)
-
-    # 4. Copy to conversation artifact directory if available
-    artifact_dir = r"C:\Users\User\.gemini\antigravity\brain\82993071-7734-4e48-9777-b2a1210d0546"
-    if os.path.isdir(artifact_dir):
-        artifact_html = os.path.join(artifact_dir, "c123_interactive_network_viewer.html")
-        build_interactive_html(all_data_json_str, artifact_html)
-        print(f"Interactive visualizer copied to artifact: {artifact_html}")
+    theta = "0_50"
+    cmin = "0_80"
 
     print("=" * 80)
-    print("Scientific journal-style visualizations successfully generated across all 8 combinations!")
-    print(f"SVGs saved in:         {OUT_FIG_DIR}")
-    print(f"Interactive App saved: {html_out}")
+    print(f"    Generating C1/C2/C3/C4 Visualizations for theta={theta}, cmin={cmin}")
+    print("=" * 80)
+
+    # 1. Load partition data
+    print("Loading positive partition datasets...")
+    data = load_partition_data(theta, cmin)
+    print(f"Loaded: C1={len(data['c1_pairs']):,}, C2={len(data['c2_pairs']):,}, C3={len(data['c3_pairs']):,}, C4={len(data['c4_pairs']):,}")
+
+    # 2. Compute core subnetwork layout
+    print("Computing core subnetwork layout for scientific presentation...")
+    core = compute_core_subgraph(data)
+
+    # 3. Export SVG to data/ figures and results/ figures
+    svg_data_path = os.path.join(OUT_DATA_FIG_DIR, f"c1234_network_id{theta}_cov{cmin}.svg")
+    svg_res_path = os.path.join(OUT_RES_FIG_DIR, f"c1234_network_id{theta}_cov{cmin}.svg")
+    generate_svg(data, core, svg_data_path)
+    generate_svg(data, core, svg_res_path)
+
+    # 4. Export Interactive HTML App
+    html_data_path = os.path.join(OUT_DATA_FIG_DIR, "c1234_interactive_network_viewer.html")
+    html_data_legacy = os.path.join(OUT_DATA_FIG_DIR, "c123_interactive_network_viewer.html")
+    html_res_path = os.path.join(OUT_RES_FIG_DIR, "c1234_interactive_network_viewer.html")
+    generate_html_app(data, core, html_data_path)
+    generate_html_app(data, core, html_data_legacy)
+    generate_html_app(data, core, html_res_path)
+
+    print("\n" + "=" * 80)
+    print("Visualization Generation Completed Successfully!")
     print("=" * 80)
 
 

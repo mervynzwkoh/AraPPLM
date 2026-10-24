@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arabidopsis PPI Network — C1/C2/C3/C4 Partition Visualizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    canvas {
+      cursor: grab;
+      background-color: #ffffff;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- Header & Toolbar -->
+  <header class="bg-white border-b border-slate-200 px-6 py-3.5 sticky top-0 z-30 flex flex-wrap items-center justify-between gap-4 shadow-xs">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-lg shadow-2xs">
+        ⚛
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          Arabidopsis thaliana PPI Network — C1/C2/C3/C4 Partition Visualizer
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Zero-Leakage Verified
+          </span>
+        </h1>
+        <p class="text-xs text-slate-500">
+          Scientific presentation &amp; journal-ready visualization (θ = 0.50, c_min = 0.80)
+        </p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-3">
+      <button id="btn-reset" class="bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-300 shadow-2xs transition">
+        Reset View
+      </button>
+
+      <button id="btn-export" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition flex items-center gap-1.5">
+        <span>📸</span> Export 300 DPI Image
+      </button>
+    </div>
+  </header>
+
+  <!-- Metric Banner -->
+  <section class="bg-slate-50 border-b border-slate-200 px-6 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 font-medium">Total Pairs:</span>
+        <span class="font-bold text-slate-900 text-sm">22,897</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 font-medium">Unique Proteins:</span>
+        <span class="font-bold text-slate-900 text-sm">8,300</span>
+      </div>
+      <div class="h-4 w-px bg-slate-300"></div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C1 Train (u,v ∈ V_train):</span>
+        <span class="font-bold text-blue-700">19,462 (85.0%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C4 Both Seen Test (u,v ∈ C1):</span>
+        <span class="font-bold text-emerald-700">1,145 (5.0%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C2 One Unseen Test:</span>
+        <span class="font-bold text-amber-700">1,145 (5.0%)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
+        <span class="text-slate-600 font-medium">C3 Both Unseen Test:</span>
+        <span class="font-bold text-red-700">1,145 (5.0%)</span>
+      </div>
+    </div>
+
+    <!-- Edge Filter Checkboxes -->
+    <div class="flex items-center gap-4 bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-2xs">
+      <span class="text-slate-500 font-medium">Layer Filters:</span>
+      <label class="flex items-center gap-1.5 cursor-pointer text-blue-700 hover:text-blue-800 font-medium">
+        <input type="checkbox" id="toggle-c1" checked class="rounded border-slate-300 text-blue-600 focus:ring-0" />
+        <span>C1 Edges (85%)</span>
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer text-emerald-700 hover:text-emerald-800 font-medium">
+        <input type="checkbox" id="toggle-c4" checked class="rounded border-slate-300 text-emerald-600 focus:ring-0" />
+        <span>C4 Edges (5%)</span>
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer text-amber-700 hover:text-amber-800 font-medium">
+        <input type="checkbox" id="toggle-c2" checked class="rounded border-slate-300 text-amber-600 focus:ring-0" />
+        <span>C2 Edges (5%)</span>
+      </label>
+      <label class="flex items-center gap-1.5 cursor-pointer text-red-700 hover:text-red-800 font-medium">
+        <input type="checkbox" id="toggle-c3" checked class="rounded border-slate-300 text-red-600 focus:ring-0" />
+        <span>C3 Edges (5%)</span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Main Canvas Container -->
+  <main class="relative flex-1 w-full overflow-hidden bg-white flex">
+    <canvas id="graph-canvas" class="w-full h-full block bg-white"></canvas>
+
+    <!-- Floating Tooltip / Inspector Card -->
+    <div id="inspector-card" class="absolute top-4 right-4 w-72 bg-white/95 border border-slate-300 rounded-xl p-4 shadow-lg pointer-events-none transition-opacity duration-150 opacity-0 z-20 backdrop-blur-xs">
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
+        <span id="node-id" class="font-mono font-bold text-sm text-slate-900">--</span>
+        <span id="node-tag" class="text-xs px-2 py-0.5 rounded font-semibold bg-slate-100 text-slate-700">--</span>
+      </div>
+      <div class="space-y-1.5 text-xs text-slate-600">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Partition:</span>
+          <span id="node-partition" class="font-medium text-slate-800">--</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Total Degree:</span>
+          <span id="node-degree" class="font-bold text-slate-900">--</span>
+        </div>
+        <div class="flex justify-between text-blue-700">
+          <span>C1 (Train) Edges:</span>
+          <span id="node-deg-c1" class="font-semibold">--</span>
+        </div>
+        <div class="flex justify-between text-emerald-700">
+          <span>C4 (Seen Test) Edges:</span>
+          <span id="node-deg-c4" class="font-semibold">--</span>
+        </div>
+        <div class="flex justify-between text-amber-700">
+          <span>C2 (Cut Boundary) Edges:</span>
+          <span id="node-deg-c2" class="font-semibold">--</span>
+        </div>
+        <div class="flex justify-between text-red-700">
+          <span>C3 (Unseen Test) Edges:</span>
+          <span id="node-deg-c3" class="font-semibold">--</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const DATA = {"theta": "0.50", "cmin": "0.80", "total_pairs": 22897, "total_prots": 8300, "c1_count": 19462, "c2_count": 1145, "c3_count": 1145, "c4_count": 1145, "c1_pct": 84.99803467703192, "c2_pct": 5.000655107656025, "c3_pct": 5.000655107656025, "c4_pct": 5.000655107656025, "v_train_size": 7844, "v_test_size": 456, "core": {"nodes": {"Q1EC66": {"id": "Q1EC66", "partition": "Train (V_train)", "is_train": true, "deg_c1": 731, "deg_c2": 14, "deg_c3": 0, "deg_c4": 36, "total_deg": 781, "x": 407.5, "y": 470.0}, "Q93Z00": {"id": "Q93Z00", "partition": "Train (V_train)", "is_train": true, "deg_c1": 184, "deg_c2": 2, "deg_c3": 0, "deg_c4": 8, "total_deg": 194, "x": 351.3, "y": 496.3}, "O24456": {"id": "O24456", "partition": "Train (V_train)", "is_train": true, "deg_c1": 159, "deg_c2": 4, "deg_c3": 0, "deg_c4": 9, "total_deg": 172, "x": 384.2, "y": 422.6}, "Q9C9L2": {"id": "Q9C9L2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 169, "deg_c2": 1, "deg_c3": 0, "deg_c4": 7, "total_deg": 177, "x": 413.5, "y": 513.6}, "P42643": {"id": "P42643", "partition": "Train (V_train)", "is_train": true, "deg_c1": 147, "deg_c2": 4, "deg_c3": 0, "deg_c4": 6, "total_deg": 157, "x": 319.5, "y": 459.3}, "Q9S7W5": {"id": "Q9S7W5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 156, "deg_c2": 0, "deg_c3": 0, "deg_c4": 6, "total_deg": 162, "x": 436.8, "y": 433.9}, "Q8LPR5": {"id": "Q8LPR5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 140, "deg_c2": 1, "deg_c3": 0, "deg_c4": 12, "total_deg": 153, "x": 361.1, "y": 540.2}, "Q9LXU1": {"id": "Q9LXU1", "partition": "Train (V_train)", "is_train": true, "deg_c1": 133, "deg_c2": 5, "deg_c3": 0, "deg_c4": 8, "total_deg": 146, "x": 344.2, "y": 401.0}, "Q9SZD4": {"id": "Q9SZD4", "partition": "Train (V_train)", "is_train": true, "deg_c1": 132, "deg_c2": 2, "deg_c3": 0, "deg_c4": 7, "total_deg": 141, "x": 457.5, "y": 498.3}, "Q9SQH9": {"id": "Q9SQH9", "partition": "Train (V_train)", "is_train": true, "deg_c1": 130, "deg_c2": 6, "deg_c3": 0, "deg_c4": 1, "total_deg": 137, "x": 299.6, "y": 503.2}, "Q84MB2": {"id": "Q84MB2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 116, "deg_c2": 1, "deg_c3": 0, "deg_c4": 7, "total_deg": 124, "x": 418.6, "y": 387.4}, "Q01525": {"id": "Q01525", "partition": "Train (V_train)", "is_train": true, "deg_c1": 105, "deg_c2": 4, "deg_c3": 0, "deg_c4": 8, "total_deg": 117, "x": 408.5, "y": 560.9}, "Q9LMN8": {"id": "Q9LMN8", "partition": "Train (V_train)", "is_train": true, "deg_c1": 60, "deg_c2": 28, "deg_c3": 0, "deg_c4": 0, "total_deg": 88, "x": 294.2, "y": 420.3}, "Q6EVK6": {"id": "Q6EVK6", "partition": "Train (V_train)", "is_train": true, "deg_c1": 100, "deg_c2": 3, "deg_c3": 0, "deg_c4": 11, "total_deg": 114, "x": 480.5, "y": 447.9}, "Q9LQF0": {"id": "Q9LQF0", "partition": "Train (V_train)", "is_train": true, "deg_c1": 105, "deg_c2": 0, "deg_c3": 0, "deg_c4": 9, "total_deg": 114, "x": 318.8, "y": 557.1}, "Q38942": {"id": "Q38942", "partition": "Train (V_train)", "is_train": true, "deg_c1": 110, "deg_c2": 2, "deg_c3": 0, "deg_c4": 3, "total_deg": 115, "x": 365.9, "y": 361.0}, "Q94F58": {"id": "Q94F58", "partition": "Train (V_train)", "is_train": true, "deg_c1": 92, "deg_c2": 9, "deg_c3": 0, "deg_c4": 2, "total_deg": 103, "x": 466.7, "y": 543.0}, "Q24JJ9": {"id": "Q24JJ9", "partition": "Train (V_train)", "is_train": true, "deg_c1": 94, "deg_c2": 3, "deg_c3": 0, "deg_c4": 5, "total_deg": 102, "x": 263.5, "y": 474.8}, "Q9XI07": {"id": "Q9XI07", "partition": "Train (V_train)", "is_train": true, "deg_c1": 102, "deg_c2": 2, "deg_c3": 0, "deg_c4": 2, "total_deg": 106, "x": 464.9, "y": 385.5}, "O23160": {"id": "O23160", "partition": "Train (V_train)", "is_train": true, "deg_c1": 98, "deg_c2": 0, "deg_c3": 0, "deg_c4": 5, "total_deg": 103, "x": 374.3, "y": 592.8}, "O23140": {"id": "O23140", "partition": "Train (V_train)", "is_train": true, "deg_c1": 92, "deg_c2": 2, "deg_c3": 0, "deg_c4": 5, "total_deg": 99, "x": 299.3, "y": 373.3}, "O82277": {"id": "O82277", "partition": "Train (V_train)", "is_train": true, "deg_c1": 91, "deg_c2": 0, "deg_c3": 0, "deg_c4": 8, "total_deg": 99, "x": 507.8, "y": 487.2}, "Q42551": {"id": "Q42551", "partition": "Train (V_train)", "is_train": true, "deg_c1": 91, "deg_c2": 2, "deg_c3": 0, "deg_c4": 5, "total_deg": 98, "x": 271.8, "y": 545.3}, "Q94AI7": {"id": "Q94AI7", "partition": "Train (V_train)", "is_train": true, "deg_c1": 84, "deg_c2": 1, "deg_c3": 0, "deg_c4": 9, "total_deg": 94, "x": 409.6, "y": 338.6}, "P30187": {"id": "P30187", "partition": "Train (V_train)", "is_train": true, "deg_c1": 83, "deg_c2": 2, "deg_c3": 0, "deg_c4": 6, "total_deg": 91, "x": 448.3, "y": 589.3}, "Q9FLP5": {"id": "Q9FLP5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 74, "deg_c2": 4, "deg_c3": 0, "deg_c4": 6, "total_deg": 84, "x": 246.5, "y": 427.4}, "Q9FZK5": {"id": "Q9FZK5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 72, "deg_c2": 8, "deg_c3": 0, "deg_c4": 2, "total_deg": 82, "x": 509.7, "y": 410.1}, "P55852": {"id": "P55852", "partition": "Train (V_train)", "is_train": true, "deg_c1": 81, "deg_c2": 5, "deg_c3": 0, "deg_c4": 1, "total_deg": 87, "x": 323.8, "y": 604.2}, "Q8H1F2": {"id": "Q8H1F2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 81, "deg_c2": 0, "deg_c3": 0, "deg_c4": 7, "total_deg": 88, "x": 329.9, "y": 330.7}, "Q96291": {"id": "Q96291", "partition": "Train (V_train)", "is_train": true, "deg_c1": 82, "deg_c2": 0, "deg_c3": 0, "deg_c4": 6, "total_deg": 88, "x": 513.3, "y": 540.0}, "Q8VZ95": {"id": "Q8VZ95", "partition": "Train (V_train)", "is_train": true, "deg_c1": 75, "deg_c2": 4, "deg_c3": 0, "deg_c4": 4, "total_deg": 83, "x": 232.0, "y": 509.0}, "P25071": {"id": "P25071", "partition": "Train (V_train)", "is_train": true, "deg_c1": 66, "deg_c2": 1, "deg_c3": 0, "deg_c4": 12, "total_deg": 79, "x": 464.1, "y": 339.2}, "O64647": {"id": "O64647", "partition": "Train (V_train)", "is_train": true, "deg_c1": 83, "deg_c2": 1, "deg_c3": 0, "deg_c4": 3, "total_deg": 87, "x": 406.7, "y": 625.6}, "Q17TI5": {"id": "Q17TI5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 80, "deg_c2": 1, "deg_c3": 0, "deg_c4": 4, "total_deg": 85, "x": 253.3, "y": 371.9}, "Q9LZ00": {"id": "Q9LZ00", "partition": "Train (V_train)", "is_train": true, "deg_c1": 78, "deg_c2": 1, "deg_c3": 0, "deg_c4": 5, "total_deg": 84, "x": 542.1, "y": 456.6}, "P24100": {"id": "P24100", "partition": "Train (V_train)", "is_train": true, "deg_c1": 55, "deg_c2": 7, "deg_c3": 0, "deg_c4": 5, "total_deg": 67, "x": 268.0, "y": 591.1}, "C0SUZ3": {"id": "C0SUZ3", "partition": "Train (V_train)", "is_train": true, "deg_c1": 74, "deg_c2": 0, "deg_c3": 0, "deg_c4": 4, "total_deg": 78, "x": 380.8, "y": 302.8}, "P46639": {"id": "P46639", "partition": "Train (V_train)", "is_train": true, "deg_c1": 68, "deg_c2": 0, "deg_c3": 0, "deg_c4": 7, "total_deg": 75, "x": 493.9, "y": 595.5}, "Q39026": {"id": "Q39026", "partition": "Train (V_train)", "is_train": true, "deg_c1": 65, "deg_c2": 4, "deg_c3": 0, "deg_c4": 3, "total_deg": 72, "x": 209.1, "y": 454.2}, "F4JI72": {"id": "F4JI72", "partition": "Train (V_train)", "is_train": true, "deg_c1": 62, "deg_c2": 0, "deg_c3": 0, "deg_c4": 9, "total_deg": 71, "x": 518.5, "y": 364.9}, "Q9FHW7": {"id": "Q9FHW7", "partition": "Train (V_train)", "is_train": true, "deg_c1": 70, "deg_c2": 2, "deg_c3": 0, "deg_c4": 1, "total_deg": 73, "x": 348.5, "y": 643.2}, "Q9LT89": {"id": "Q9LT89", "partition": "Train (V_train)", "is_train": true, "deg_c1": 63, "deg_c2": 2, "deg_c3": 0, "deg_c4": 4, "total_deg": 69, "x": 285.1, "y": 319.2}, "F4JN35": {"id": "F4JN35", "partition": "Train (V_train)", "is_train": true, "deg_c1": 52, "deg_c2": 8, "deg_c3": 0, "deg_c4": 2, "total_deg": 62, "x": 553.9, "y": 517.6}, "P48348": {"id": "P48348", "partition": "Train (V_train)", "is_train": true, "deg_c1": 64, "deg_c2": 2, "deg_c3": 0, "deg_c4": 3, "total_deg": 69, "x": 217.8, "y": 553.3}, "Q9LQT8": {"id": "Q9LQT8", "partition": "Train (V_train)", "is_train": true, "deg_c1": 65, "deg_c2": 1, "deg_c3": 0, "deg_c4": 3, "total_deg": 69, "x": 444.1, "y": 297.1}, "O80748": {"id": "O80748", "partition": "Train (V_train)", "is_train": true, "deg_c1": 59, "deg_c2": 0, "deg_c3": 0, "deg_c4": 6, "total_deg": 65, "x": 450.3, "y": 642.7}, "Q8L8A5": {"id": "Q8L8A5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 56, "deg_c2": 1, "deg_c3": 0, "deg_c4": 6, "total_deg": 63, "x": 209.7, "y": 389.3}, "Q9SLH3": {"id": "Q9SLH3", "partition": "Train (V_train)", "is_train": true, "deg_c1": 61, "deg_c2": 1, "deg_c3": 0, "deg_c4": 3, "total_deg": 65, "x": 562.0, "y": 413.9}, "Q9LVG2": {"id": "Q9LVG2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 55, "deg_c2": 0, "deg_c3": 0, "deg_c4": 7, "total_deg": 62, "x": 282.7, "y": 636.0}, "Q9FTA2": {"id": "Q9FTA2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 50, "deg_c2": 1, "deg_c3": 0, "deg_c4": 8, "total_deg": 59, "x": 339.2, "y": 279.9}, "Q8L7S9": {"id": "Q8L7S9", "partition": "Train (V_train)", "is_train": true, "deg_c1": 55, "deg_c2": 2, "deg_c3": 0, "deg_c4": 4, "total_deg": 61, "x": 540.0, "y": 583.7}, "Q84JG2": {"id": "Q84JG2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 57, "deg_c2": 1, "deg_c3": 0, "deg_c4": 4, "total_deg": 62, "x": 183.3, "y": 494.5}, "Q8VZW1": {"id": "Q8VZW1", "partition": "Train (V_train)", "is_train": true, "deg_c1": 43, "deg_c2": 6, "deg_c3": 0, "deg_c4": 4, "total_deg": 53, "x": 509.7, "y": 317.6}, "Q9M1Z5": {"id": "Q9M1Z5", "partition": "Train (V_train)", "is_train": true, "deg_c1": 53, "deg_c2": 2, "deg_c3": 0, "deg_c4": 3, "total_deg": 58, "x": 387.4, "y": 671.9}, "Q9C518": {"id": "Q9C518", "partition": "Train (V_train)", "is_train": true, "deg_c1": 60, "deg_c2": 0, "deg_c3": 0, "deg_c4": 2, "total_deg": 62, "x": 236.9, "y": 324.8}, "Q39057": {"id": "Q39057", "partition": "Train (V_train)", "is_train": true, "deg_c1": 57, "deg_c2": 1, "deg_c3": 0, "deg_c4": 2, "total_deg": 60, "x": 585.4, "y": 480.5}, "Q9ZPS9": {"id": "Q9ZPS9", "partition": "Train (V_train)", "is_train": true, "deg_c1": 53, "deg_c2": 1, "deg_c3": 0, "deg_c4": 4, "total_deg": 58, "x": 220.0, "y": 602.2}, "Q9FMX2": {"id": "Q9FMX2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 63, "deg_c2": 0, "deg_c3": 0, "deg_c4": 0, "total_deg": 63, "x": 408.9, "y": 262.6}, "P94077": {"id": "P94077", "partition": "Train (V_train)", "is_train": true, "deg_c1": 57, "deg_c2": 0, "deg_c3": 0, "deg_c4": 3, "total_deg": 60, "x": 499.8, "y": 643.9}, "Q06611": {"id": "Q06611", "partition": "Train (V_train)", "is_train": true, "deg_c1": 52, "deg_c2": 2, "deg_c3": 0, "deg_c4": 3, "total_deg": 57, "x": 172.5, "y": 422.3}, "O23320": {"id": "O23320", "partition": "Train (V_train)", "is_train": true, "deg_c1": 52, "deg_c2": 1, "deg_c3": 0, "deg_c4": 4, "total_deg": 57, "x": 566.8, "y": 364.2}, "F4K5X6": {"id": "F4K5X6", "partition": "Train (V_train)", "is_train": true, "deg_c1": 54, "deg_c2": 0, "deg_c3": 0, "deg_c4": 4, "total_deg": 58, "x": 313.2, "y": 675.9}, "Q39237": {"id": "Q39237", "partition": "Train (V_train)", "is_train": true, "deg_c1": 49, "deg_c2": 0, "deg_c3": 0, "deg_c4": 5, "total_deg": 54, "x": 289.5, "y": 271.5}, "O64722": {"id": "O64722", "partition": "Train (V_train)", "is_train": true, "deg_c1": 56, "deg_c2": 0, "deg_c3": 0, "deg_c4": 1, "total_deg": 57, "x": 582.5, "y": 555.9}, "Q9FME3": {"id": "Q9FME3", "partition": "Train (V_train)", "is_train": true, "deg_c1": 54, "deg_c2": 0, "deg_c3": 0, "deg_c4": 2, "total_deg": 56, "x": 171.1, "y": 544.0}, "Q8L4B2": {"id": "Q8L4B2", "partition": "Train (V_train)", "is_train": true, "deg_c1": 50, "deg_c2": 0, "deg_c3": 0, "deg_c4": 4, "total_deg": 54, "x": 484.9, "y": 272.8}, "P49177": {"id": "P49177", "partition": "Train (V_train)", "is_train": true, "deg_c1": 48, "deg_c2": 0, "deg_c3": 0, "deg_c4": 4, "total_deg": 52, "x": 436.3, "y": 687.9}, "P48000": {"id": "P48000", "partition": "Train (V_train)", "is_train": true, "deg_c1": 46, "deg_c2": 0, "deg_c3": 0, "deg_c4": 5, "total_deg": 51, "x": 189.9, "y": 346.5}, "Q38845": {"id": "Q38845", "partition": "Train (V_train)", "is_train": true, "deg_c1": 49, "deg_c2": 1, "deg_c3": 0, "deg_c4": 2, "total_deg": 52, "x": 605.2, "y": 432.4}, "Q9M1U4": {"id": "Q9M1U4", "partition": "Train (V_train)", "is_train": true, "deg_c1": 47, "deg_c2": 0, "deg_c3": 0, "deg_c4": 4, "total_deg": 51, "x": 238.3, "y": 651.2}, "Q9SVG8": {"id": "Q9SVG8", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 130, "deg_c3": 98, "deg_c4": 0, "total_deg": 228, "x": 889.7, "y": 470.0}, "P43286": {"id": "P43286", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 162, "deg_c3": 5, "deg_c4": 0, "total_deg": 167, "x": 829.0, "y": 498.4}, "P42644": {"id": "P42644", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 119, "deg_c3": 2, "deg_c4": 0, "total_deg": 121, "x": 864.5, "y": 418.8}, "Q8LAA6": {"id": "Q8LAA6", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 62, "deg_c4": 0, "total_deg": 68, "x": 896.1, "y": 517.1}, "Q9M9S6": {"id": "Q9M9S6", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 9, "deg_c3": 46, "deg_c4": 0, "total_deg": 55, "x": 794.6, "y": 458.4}, "Q29Q28": {"id": "Q29Q28", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 50, "deg_c4": 0, "total_deg": 56, "x": 921.4, "y": 431.0}, "C0LGF4": {"id": "C0LGF4", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 23, "deg_c3": 19, "deg_c4": 0, "total_deg": 42, "x": 839.6, "y": 545.9}, "F4IHS9": {"id": "F4IHS9", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 12, "deg_c3": 36, "deg_c4": 0, "total_deg": 48, "x": 821.3, "y": 395.5}, "Q8W4J2": {"id": "Q8W4J2", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 25, "deg_c3": 1, "deg_c4": 0, "total_deg": 26, "x": 943.7, "y": 500.6}, "Q500Z4": {"id": "Q500Z4", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 38, "deg_c4": 0, "total_deg": 39, "x": 773.2, "y": 505.8}, "Q8VZU9": {"id": "Q8VZU9", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 28, "deg_c4": 0, "total_deg": 34, "x": 901.7, "y": 380.8}, "Q8LCY3": {"id": "Q8LCY3", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 4, "deg_c3": 29, "deg_c4": 0, "total_deg": 33, "x": 890.8, "y": 568.2}, "Q9SV74": {"id": "Q9SV74", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 28, "deg_c4": 0, "total_deg": 31, "x": 767.4, "y": 416.3}, "Q9SR93": {"id": "Q9SR93", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 5, "deg_c3": 22, "deg_c4": 0, "total_deg": 27, "x": 968.5, "y": 446.1}, "Q39241": {"id": "Q39241", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 9, "deg_c3": 15, "deg_c4": 0, "total_deg": 24, "x": 793.8, "y": 564.1}, "Q9FRR1": {"id": "Q9FRR1", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 8, "deg_c3": 12, "deg_c4": 0, "total_deg": 20, "x": 844.7, "y": 352.2}, "Q9SIE6": {"id": "Q9SIE6", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 11, "deg_c3": 7, "deg_c4": 0, "total_deg": 18, "x": 953.6, "y": 548.9}, "Q9FWR4": {"id": "Q9FWR4", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 20, "deg_c4": 0, "total_deg": 23, "x": 734.1, "y": 475.2}, "Q9LK55": {"id": "Q9LK55", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 12, "deg_c3": 5, "deg_c4": 0, "total_deg": 17, "x": 951.8, "y": 378.7}, "Q9SYK5": {"id": "Q9SYK5", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 5, "deg_c3": 16, "deg_c4": 0, "total_deg": 21, "x": 853.9, "y": 602.7}, "Q944J0": {"id": "Q944J0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 12, "deg_c4": 0, "total_deg": 18, "x": 772.8, "y": 365.5}, "Q9C7D7": {"id": "Q9C7D7", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 19, "deg_c4": 0, "total_deg": 20, "x": 998.1, "y": 488.6}, "Q1EC69": {"id": "Q1EC69", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 7, "deg_c3": 9, "deg_c4": 0, "total_deg": 16, "x": 743.1, "y": 551.3}, "P57752": {"id": "P57752", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 4, "deg_c3": 14, "deg_c4": 0, "total_deg": 18, "x": 891.9, "y": 328.1}, "Q9SJJ5": {"id": "Q9SJJ5", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 7, "deg_c3": 9, "deg_c4": 0, "total_deg": 16, "x": 933.8, "y": 598.8}, "Q9FNY0": {"id": "Q9FNY0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 8, "deg_c3": 6, "deg_c4": 0, "total_deg": 14, "x": 715.7, "y": 424.0}, "Q9SAH1": {"id": "Q9SAH1", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 9, "deg_c4": 0, "total_deg": 15, "x": 1000.1, "y": 405.3}, "Q9SHI7": {"id": "Q9SHI7", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 14, "deg_c4": 0, "total_deg": 17, "x": 799.3, "y": 615.0}, "Q9CAC5": {"id": "Q9CAC5", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 17, "deg_c4": 0, "total_deg": 18, "x": 805.9, "y": 319.5}, "Q8L9S0": {"id": "Q8L9S0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 5, "deg_c3": 10, "deg_c4": 0, "total_deg": 15, "x": 1004.0, "y": 545.7}, "Q9ZRW8": {"id": "Q9ZRW8", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 8, "deg_c3": 5, "deg_c4": 0, "total_deg": 13, "x": 700.1, "y": 512.1}, "Q9LRY0": {"id": "Q9LRY0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 8, "deg_c3": 5, "deg_c4": 0, "total_deg": 13, "x": 950.9, "y": 328.7}, "Q9C5I0": {"id": "Q9C5I0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 8, "deg_c4": 0, "total_deg": 14, "x": 888.9, "y": 638.1}, "Q9XIF4": {"id": "Q9XIF4", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 16, "deg_c4": 0, "total_deg": 17, "x": 723.1, "y": 364.0}, "Q941L0": {"id": "Q941L0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 4, "deg_c3": 11, "deg_c4": 0, "total_deg": 15, "x": 1035.1, "y": 455.5}, "O81071": {"id": "O81071", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 16, "deg_c4": 0, "total_deg": 17, "x": 739.0, "y": 600.8}, "P48491": {"id": "P48491", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 12, "deg_c4": 0, "total_deg": 15, "x": 860.9, "y": 289.4}, "F4I1Z0": {"id": "F4I1Z0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 12, "deg_c4": 0, "total_deg": 15, "x": 983.0, "y": 605.6}, "Q9SZT7": {"id": "Q9SZT7", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 15, "deg_c4": 0, "total_deg": 16, "x": 675.3, "y": 452.9}, "Q8LGA1": {"id": "Q8LGA1", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 8, "deg_c3": 3, "deg_c4": 0, "total_deg": 11, "x": 1009.6, "y": 356.4}, "O22622": {"id": "O22622", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 13, "deg_c4": 0, "total_deg": 15, "x": 826.0, "y": 657.1}, "P38389": {"id": "P38389", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 5, "deg_c3": 8, "deg_c4": 0, "total_deg": 13, "x": 757.5, "y": 307.1}, "Q9LW56": {"id": "Q9LW56", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 13, "deg_c4": 0, "total_deg": 15, "x": 1047.8, "y": 521.5}, "Q9ZW11": {"id": "Q9ZW11", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 3, "deg_c3": 11, "deg_c4": 0, "total_deg": 14, "x": 684.7, "y": 559.9}, "Q9LMT0": {"id": "Q9LMT0", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 6, "deg_c3": 6, "deg_c4": 0, "total_deg": 12, "x": 929.3, "y": 283.2}, "Q9LW08": {"id": "Q9LW08", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 1, "deg_c3": 14, "deg_c4": 0, "total_deg": 15, "x": 935.9, "y": 656.6}, "Q9LJK3": {"id": "Q9LJK3", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 12, "deg_c4": 0, "total_deg": 14, "x": 676.0, "y": 382.8}, "Q8VYP7": {"id": "Q8VYP7", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 12, "deg_c4": 0, "total_deg": 14, "x": 1056.6, "y": 409.4}, "Q9SX96": {"id": "Q9SX96", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 12, "deg_c4": 0, "total_deg": 14, "x": 754.9, "y": 649.4}, "Q8RWZ6": {"id": "Q8RWZ6", "partition": "Test (V_test)", "is_train": false, "deg_c1": 0, "deg_c2": 2, "deg_c3": 12, "deg_c4": 0, "total_deg": 14, "x": 815.9, "y": 264.7}}, "sub_c1": [["Q39057", "Q8L4B2", 0.8995], ["Q93Z00", "Q9SLH3", 0.8978], ["P55852", "Q42551", 0.8967], ["P46639", "Q84JG2", 0.8955], ["Q9LQT8", "Q9S7W5", 0.8955], ["Q93Z00", "Q9S7W5", 0.8945], ["Q9C518", "Q9C9L2", 0.8945], ["Q6EVK6", "Q9XI07", 0.891], ["Q93Z00", "Q9FTA2", 0.891], ["Q9FTA2", "Q9LT89", 0.891], ["Q93Z00", "Q9C518", 0.8899], ["Q17TI5", "Q9LVG2", 0.8899], ["Q9C9L2", "Q9FME3", 0.8899], ["Q9FMX2", "Q9LQF0", 0.8899], ["Q8L4B2", "Q9SLH3", 0.8854], ["P49177", "Q39026", 0.8854], ["P46639", "Q84MB2", 0.8792], ["O64647", "Q9FMX2", 0.8792], ["Q8L4B2", "Q9LQF0", 0.8792], ["P94077", "Q8L4B2", 0.8792], ["P46639", "Q9LVG2", 0.8792], ["P46639", "Q9LQF0", 0.8792], ["O64647", "Q9C9L2", 0.8792], ["Q8L4B2", "Q8LPR5", 0.8792], ["Q8L4B2", "Q9FME3", 0.8792], ["Q8L8A5", "Q9C9L2", 0.8792], ["Q9FLP5", "Q9LQF0", 0.8792], ["Q9C518", "Q9FTA2", 0.8764], ["P48000", "Q84JG2", 0.8753], ["Q93Z00", "Q9FME3", 0.8753], ["Q93Z00", "Q9LQF0", 0.8753], ["Q93Z00", "Q9C9L2", 0.8753], ["Q8LPR5", "Q9FME3", 0.8753], ["Q8LPR5", "Q9S7W5", 0.8753], ["Q9C518", "Q9FME3", 0.8753], ["Q9C518", "Q9S7W5", 0.8753], ["O82277", "Q9FME3", 0.8753], ["O82277", "Q9S7W5", 0.8753], ["Q9FME3", "Q9S7W5", 0.8753], ["Q9FME3", "Q9LQF0", 0.8753], ["Q9C518", "Q9LT89", 0.8753], ["Q9C9L2", "Q9S7W5", 0.8753], ["Q9C9L2", "Q9LQF0", 0.8753], ["Q9LQF0", "Q9LT89", 0.8753], ["Q9C9L2", "Q9LT89", 0.8753], ["Q9C9L2", "Q9FTA2", 0.8753], ["P48000", "Q9LQF0", 0.8646], ["Q8L8A5", "Q8LPR5", 0.8646], ["O64647", "Q8L8A5", 0.8646], ["Q84JG2", "Q93Z00", 0.8646], ["P48000", "Q93Z00", 0.8646], ["P46639", "Q93Z00", 0.8646], ["F4JI72", "Q17TI5", 0.8646], ["O82277", "Q9LVG2", 0.8646], ["P46639", "P48000", 0.8646], ["P46639", "Q8LPR5", 0.8646], ["P48000", "Q39057", 0.8646], ["O82277", "P48000", 0.8646], ["P48000", "Q9S7W5", 0.8646], ["O64722", "Q84JG2", 0.8646], ["F4K5X6", "Q93Z00", 0.8646], ["O64647", "Q9C518", 0.8646], ["P46639", "Q9S7W5", 0.8646], ["O64722", "P48000", 0.8646], ["O64647", "Q39237", 0.8646], ["Q39237", "Q9S7W5", 0.8646], ["Q8L4B2", "Q93Z00", 0.8646], ["O64647", "Q9FME3", 0.8646], ["O64647", "Q9S7W5", 0.8646], ["F4K5X6", "Q8LPR5", 0.8646], ["Q8L8A5", "Q93Z00", 0.8646], ["O64647", "Q9LQF0", 0.8646], ["O82277", "Q9LXU1", 0.8646], ["P48000", "Q9FTA2", 0.8646], ["Q9LQF0", "Q9LXU1", 0.8646], ["F4K5X6", "O82277", 0.8646], ["F4K5X6", "Q9FME3", 0.8646], ["F4K5X6", "O64647", 0.8646], ["F4K5X6", "Q9S7W5", 0.8646], ["Q8L4B2", "Q9C518", 0.8646], ["Q39237", "Q9FMX2", 0.8646], ["F4K5X6", "Q9C9L2", 0.8646], ["P94077", "Q8LPR5", 0.8646], ["Q9FMX2", "Q9S7W5", 0.8646], ["F4K5X6", "O64722", 0.8646], ["P48000", "Q9M1U4", 0.8646], ["O82277", "Q8L4B2", 0.8646], ["P94077", "Q9C518", 0.8646], ["O64647", "Q8L4B2", 0.8646], ["Q8L4B2", "Q9S7W5", 0.8646], ["F4K5X6", "Q9LT89", 0.8646], ["Q84MB2", "Q8L8A5", 0.8646], ["Q8L8A5", "Q9FME3", 0.8646], ["Q8L8A5", "Q9S7W5", 0.8646], ["Q9FMX2", "Q9LXU1", 0.8646], ["Q8L4B2", "Q9C9L2", 0.8646], ["O64647", "P94077", 0.8646], ["F4K5X6", "Q9FMX2", 0.8646], ["P94077", "Q9LT89", 0.8646], ["Q8L4B2", "Q9FMX2", 0.8646], ["Q8L8A5", "Q9FMX2", 0.8646], ["F4K5X6", "Q9M1U4", 0.8646], ["O80748", "P94077", 0.8646], ["P94077", "Q9FTA2", 0.8646], ["Q8L4B2", "Q9M1U4", 0.8646], ["Q8L8A5", "Q9M1U4", 0.8646], ["P55852", "Q9SLH3", 0.8646], ["P42643", "Q8L8A5", 0.8646], ["Q94AI7", "Q9LVG2", 0.8389], ["Q93Z00", "Q9LT89", 0.8389], ["O24456", "Q39026", 0.8382], ["O24456", "P49177", 0.8382], ["C0SUZ3", "Q93Z00", 0.8282], ["Q8LPR5", "Q9LXU1", 0.8282], ["C0SUZ3", "O82277", 0.8282], ["C0SUZ3", "Q9FME3", 0.8282], ["C0SUZ3", "Q9S7W5", 0.8282], ["C0SUZ3", "O64722", 0.8282], ["Q6EVK6", "Q8LPR5", 0.8282], ["Q01525", "Q9ZPS9", 0.8282], ["Q93Z00", "Q9LVG2", 0.8282], ["F4JI72", "P46639", 0.8282], ["Q9LVG2", "Q9S7W5", 0.8282], ["F4JI72", "O64722", 0.8282], ["C0SUZ3", "F4JI72", 0.8282], ["Q93Z00", "Q9LXU1", 0.8282], ["F4JI72", "F4K5X6", 0.8282], ["O64647", "P48000", 0.8282], ["O82277", "P46639", 0.8282], ["Q9FTA2", "Q9LVG2", 0.8282], ["C0SUZ3", "Q8LPR5", 0.8282], ["Q9C518", "Q9LXU1", 0.8282], ["C0SUZ3", "P46639", 0.8282], ["Q39057", "Q9LXU1", 0.8282], ["Q84MB2", "Q9LXU1", 0.8282], ["Q9FME3", "Q9LXU1", 0.8282], ["O64647", "Q9LXU1", 0.8282], ["C0SUZ3", "Q84MB2", 0.8282], ["C0SUZ3", "O64647", 0.8282], ["C0SUZ3", "Q9LQF0", 0.8282], ["P48000", "Q8L8A5", 0.8282], ["P49177", "Q01525", 0.8282], ["Q9C9L2", "Q9LXU1", 0.8282], ["C0SUZ3", "Q9C9L2", 0.8282], ["O80748", "Q9FME3", 0.8282], ["Q9LT89", "Q9LXU1", 0.8282], ["Q8VZ95", "Q94F58", 0.8282], ["O80748", "Q9LXU1", 0.8282], ["Q8VZ95", "Q8VZW1", 0.8282], ["C0SUZ3", "Q9FMX2", 0.8282], ["C0SUZ3", "Q8L4B2", 0.8282], ["Q8L4B2", "Q9LT89", 0.8282], ["Q9LXU1", "Q9M1U4", 0.8282], ["Q42551", "Q9FLP5", 0.8282], ["Q1EC66", "Q9ZPS9", 0.8282], ["Q84JG2", "Q9XI07", 0.8218], ["P42643", "Q1EC66", 0.7599], ["Q6EVK6", "Q9LVG2", 0.7492], ["Q6EVK6", "Q84JG2", 0.7492], ["P48000", "Q6EVK6", 0.7492], ["Q6EVK6", "Q9C518", 0.7492], ["Q6EVK6", "Q9FME3", 0.7492], ["Q6EVK6", "Q9LT89", 0.7492], ["Q6EVK6", "Q8L8A5", 0.7492], ["Q6EVK6", "Q9M1U4", 0.7492], ["Q84MB2", "Q94AI7", 0.7492], ["Q9LVG2", "Q9XI07", 0.7492], ["P48000", "Q9XI07", 0.7492], ["P55852", "Q94AI7", 0.7492], ["Q8LPR5", "Q9XI07", 0.7492], ["Q9C518", "Q9XI07", 0.7492], ["Q39057", "Q9XI07", 0.7492], ["Q9FME3", "Q9XI07", 0.7492], ["Q9S7W5", "Q9XI07", 0.7492], ["Q9LT89", "Q9XI07", 0.7492], ["Q9FMX2", "Q9XI07", 0.7492], ["Q9LQT8", "Q9LVG2", 0.7492], ["Q9C518", "Q9SLH3", 0.7492], ["O64647", "Q9SLH3", 0.7492], ["O23140", "Q9SQH9", 0.7492], ["Q38942", "Q9SLH3", 0.7492], ["Q9LQF0", "Q9SLH3", 0.7492], ["Q9C9L2", "Q9SLH3", 0.7492], ["Q8LPR5", "Q93Z00", 0.7492], ["Q1EC66", "Q38845", 0.7492], ["Q9FME3", "Q9LQT8", 0.7492], ["O82277", "Q93Z00", 0.7492], ["Q39057", "Q84JG2", 0.7492], ["Q39237", "Q8H1F2", 0.7492], ["Q9LQT8", "Q9LT89", 0.7492], ["Q8LPR5", "Q9C518", 0.7492], ["O24456", "Q8H1F2", 0.7492], ["O82277", "Q8LPR5", 0.7492], ["O82277", "Q9C518", 0.7492], ["Q8LPR5", "Q9LQF0", 0.7492], ["Q8VZ95", "Q9SQH9", 0.7492], ["Q8LPR5", "Q9C9L2", 0.7492], ["P25071", "Q9M1Z5", 0.7492], ["P49177", "Q94F58", 0.7492], ["Q8LPR5", "Q9LT89", 0.7492], ["F4JN35", "Q9FZK5", 0.7492], ["Q96291", "Q9SZD4", 0.7492], ["O82277", "Q9LQF0", 0.7492], ["Q9LQT8", "Q9M1U4", 0.7492], ["Q9LQF0", "Q9S7W5", 0.7492], ["O82277", "Q9C9L2", 0.7492], ["P49177", "Q06611", 0.7492], ["Q8LPR5", "Q9FTA2", 0.7492], ["O82277", "Q9LT89", 0.7492], ["Q9FME3", "Q9LT89", 0.7492], ["Q9LT89", "Q9S7W5", 0.7492], ["Q39026", "Q9FMX2", 0.7492], ["Q84JG2", "Q9M1U4", 0.7492], ["P49177", "Q8VZ95", 0.7492], ["Q38942", "Q96291", 0.7492], ["O24456", "Q06611", 0.7492], ["Q42551", "Q9SZD4", 0.7492], ["O82277", "Q9FTA2", 0.7492], ["P24100", "Q1EC66", 0.7492], ["Q1EC66", "Q96291", 0.7492], ["Q9FLP5", "Q9SZD4", 0.7492], ["P55852", "Q9SZD4", 0.7492], ["Q94F58", "Q9FZK5", 0.7492], ["P42643", "Q96291", 0.7492], ["O24456", "Q8L7S9", 0.7492], ["Q9FMX2", "Q9FTA2", 0.7492], ["P24100", "P94077", 0.7492], ["P42643", "P94077", 0.7492]], "sub_c2": [["P24100", "Q8LGA1", 0.8997], ["P24100", "Q9LRY0", 0.8911], ["Q9LMN8", "Q9LW56", 0.8282], ["Q9LMN8", "Q9ZW11", 0.8282], ["C0LGF4", "Q9LMN8", 0.8282], ["Q9LJK3", "Q9LMN8", 0.8282], ["Q8VZU9", "Q9LMN8", 0.8282], ["Q9LMN8", "Q9SHI7", 0.8282], ["Q39241", "Q9LMN8", 0.8282], ["Q8LAA6", "Q94F58", 0.8282], ["Q8VZW1", "Q9M9S6", 0.8282], ["Q8VZ95", "Q9M9S6", 0.8282], ["Q8LAA6", "Q8VZW1", 0.8282], ["P38389", "Q94F58", 0.8282], ["Q1EC66", "Q9FWR4", 0.7599], ["P43286", "Q9SQH9", 0.7492], ["Q6EVK6", "Q9FNY0", 0.7492], ["Q9LMN8", "Q9SYK5", 0.7492], ["Q9FNY0", "Q9XI07", 0.7492], ["Q9LMN8", "Q9SVG8", 0.7492], ["F4IHS9", "Q9LMN8", 0.7492], ["O64647", "Q8W4J2", 0.7492], ["Q9LMN8", "Q9SV74", 0.7492], ["P43286", "Q38845", 0.7492], ["P42644", "Q9SLH3", 0.7492], ["Q8W4J2", "Q9FHW7", 0.7492], ["O23140", "P43286", 0.7492], ["Q9LZ00", "Q9SIE6", 0.7492], ["F4JN35", "Q9C5I0", 0.7492], ["Q9SZD4", "Q9ZRW8", 0.7492], ["F4JN35", "Q9LK55", 0.7492], ["P48491", "Q38942", 0.7492], ["F4JN35", "P38389", 0.7492], ["P42643", "P43286", 0.7492], ["O24456", "Q9ZRW8", 0.7492], ["Q94F58", "Q9C5I0", 0.7492], ["Q94F58", "Q9LK55", 0.7492], ["P48491", "Q8L7S9", 0.7492], ["Q8VZW1", "Q9LK55", 0.7492], ["Q8L7S9", "Q9ZRW8", 0.7492], ["Q8VZ95", "Q9LK55", 0.7492], ["Q9C5I0", "Q9FZK5", 0.7492], ["Q9FZK5", "Q9LK55", 0.7492], ["P38389", "Q9FZK5", 0.7492]], "sub_c3": [["Q8LGA1", "Q9LRY0", 0.891], ["Q8LGA1", "Q9SJJ5", 0.8753], ["Q29Q28", "Q941L0", 0.8282], ["Q941L0", "Q9M9S6", 0.8282], ["Q941L0", "Q9LJK3", 0.8282], ["Q8LAA6", "Q941L0", 0.8282], ["P57752", "Q941L0", 0.8282], ["Q9LW56", "Q9M9S6", 0.8282], ["Q9LW56", "Q9SHI7", 0.8282], ["Q29Q28", "Q8RWZ6", 0.8282], ["Q9FWR4", "Q9LW56", 0.8282], ["Q9C7D7", "Q9LW56", 0.8282], ["Q29Q28", "Q9SR93", 0.8282], ["Q9ZRW8", "Q9ZW11", 0.8282], ["Q9M9S6", "Q9SR93", 0.8282], ["P57752", "Q9LW56", 0.8282], ["Q8LAA6", "Q9SR93", 0.8282], ["Q39241", "Q9ZW11", 0.8282], ["Q9SR93", "Q9ZRW8", 0.8282], ["Q29Q28", "Q9M9S6", 0.8282], ["Q9SR93", "Q9XIF4", 0.8282], ["Q29Q28", "Q8LAA6", 0.8282], ["Q29Q28", "Q8VZU9", 0.8282], ["Q29Q28", "Q9SHI7", 0.8282], ["Q9M9S6", "Q9SHI7", 0.8282], ["Q500Z4", "Q9FWR4", 0.8282], ["P48491", "Q8LAA6", 0.8282], ["Q9LJK3", "Q9SHI7", 0.8282], ["Q8LAA6", "Q9SHI7", 0.8282], ["Q8VZU9", "Q9SHI7", 0.8282], ["Q29Q28", "Q9C7D7", 0.8282], ["Q500Z4", "Q8L9S0", 0.8282], ["Q500Z4", "Q9XIF4", 0.8282], ["Q9C7D7", "Q9M9S6", 0.8282], ["Q39241", "Q500Z4", 0.8282], ["O22622", "Q500Z4", 0.8282], ["O22622", "Q29Q28", 0.8282], ["O22622", "Q9M9S6", 0.8282], ["Q1EC69", "Q9C7D7", 0.8282], ["P57752", "Q500Z4", 0.8282], ["Q9FRR1", "Q9ZRW8", 0.8282], ["P57752", "Q9M9S6", 0.8282], ["Q944J0", "Q9M9S6", 0.8282], ["Q8L9S0", "Q8LAA6", 0.8282], ["Q8LAA6", "Q9XIF4", 0.8282], ["P38389", "Q9M9S6", 0.8282], ["O22622", "Q9LJK3", 0.8282], ["O22622", "Q8LAA6", 0.8282], ["Q8VZU9", "Q9XIF4", 0.8282], ["Q944J0", "Q9LJK3", 0.8282], ["Q8LAA6", "Q944J0", 0.8282], ["P38389", "Q8LAA6", 0.8282], ["Q8VZU9", "Q944J0", 0.8282], ["Q9C7D7", "Q9FRR1", 0.8282], ["P38389", "Q8VZU9", 0.8282], ["P38389", "Q9XIF4", 0.8282], ["Q9SR93", "Q9SYK5", 0.7492], ["Q941L0", "Q9SYK5", 0.7492], ["Q9SVG8", "Q9ZW11", 0.7492], ["Q8RWZ6", "Q9SVG8", 0.7492], ["Q9SYK5", "Q9SZT7", 0.7492], ["Q9SR93", "Q9SZT7", 0.7492], ["F4I1Z0", "Q9SVG8", 0.7492], ["Q9FNY0", "Q9LMT0", 0.7492], ["F4IHS9", "Q9SVG8", 0.7492], ["F4IHS9", "Q9SR93", 0.7492], ["Q9SYK5", "Q9ZRW8", 0.7492], ["Q29Q28", "Q9SZT7", 0.7492], ["Q9FRR1", "Q9SYK5", 0.7492], ["Q9M9S6", "Q9SZT7", 0.7492], ["Q8LAA6", "Q9SVG8", 0.7492], ["Q9SV74", "Q9ZW11", 0.7492], ["Q9SIE6", "Q9SZT7", 0.7492], ["Q8LAA6", "Q9SZT7", 0.7492], ["Q8VZU9", "Q9SVG8", 0.7492], ["Q9SHI7", "Q9SVG8", 0.7492], ["Q9SVG8", "Q9SX96", 0.7492], ["Q39241", "Q9SYK5", 0.7492], ["Q8VYP7", "Q9SR93", 0.7492], ["Q9CAC5", "Q9SR93", 0.7492], ["Q9SV74", "Q9SVG8", 0.7492], ["Q9C7D7", "Q9SVG8", 0.7492], ["Q8L9S0", "Q9SVG8", 0.7492], ["O81071", "Q9SZT7", 0.7492], ["F4IHS9", "Q8LAA6", 0.7492], ["P57752", "Q9SVG8", 0.7492], ["Q944J0", "Q9SVG8", 0.7492], ["Q9SAH1", "Q9SR93", 0.7492], ["Q500Z4", "Q9SX96", 0.7492], ["Q9LMT0", "Q9LRY0", 0.7492], ["F4IHS9", "Q9SHI7", 0.7492], ["Q29Q28", "Q9SX96", 0.7492], ["F4IHS9", "Q9FWR4", 0.7492], ["F4I1Z0", "P38389", 0.7492], ["Q29Q28", "Q9LW08", 0.7492], ["Q8VYP7", "Q9M9S6", 0.7492], ["Q29Q28", "Q9SV74", 0.7492], ["Q8LAA6", "Q9SX96", 0.7492], ["Q9M9S6", "Q9SV74", 0.7492], ["Q8VZU9", "Q9SX96", 0.7492], ["F4IHS9", "Q9C7D7", 0.7492], ["O81071", "Q29Q28", 0.7492], ["Q8LAA6", "Q9CAC5", 0.7492], ["F4IHS9", "Q8L9S0", 0.7492], ["F4IHS9", "Q9XIF4", 0.7492], ["Q8LAA6", "Q9LW08", 0.7492], ["O81071", "Q9M9S6", 0.7492], ["Q8LAA6", "Q9SV74", 0.7492], ["F4IHS9", "Q39241", 0.7492], ["Q29Q28", "Q9LK55", 0.7492], ["Q8LAA6", "Q9C5I0", 0.7492], ["Q8LCY3", "Q9M9S6", 0.7492], ["Q9LK55", "Q9M9S6", 0.7492], ["F4IHS9", "P57752", 0.7492], ["F4IHS9", "Q944J0", 0.7492], ["Q8VZU9", "Q9C5I0", 0.7492], ["O81071", "Q8LAA6", 0.7492], ["P48491", "Q9C5I0", 0.7492], ["Q9CAC5", "Q9LW08", 0.7492], ["Q8VYP7", "Q9SV74", 0.7492], ["O81071", "Q9SX96", 0.7492], ["Q9LW08", "Q9SV74", 0.7492], ["Q8LCY3", "Q9SX96", 0.7492], ["O81071", "Q8VYP7", 0.7492], ["Q8LCY3", "Q9FRR1", 0.7492], ["Q9FRR1", "Q9LK55", 0.7492], ["O22622", "Q9CAC5", 0.7492], ["O81071", "Q9C5I0", 0.7492], ["Q8LCY3", "Q9LW08", 0.7492], ["Q944J0", "Q9LW08", 0.7492], ["Q9LRY0", "Q9SJJ5", 0.7492], ["Q8LCY3", "Q9C5I0", 0.7492], ["Q8LCY3", "Q9C7D7", 0.7492], ["O81071", "Q8LCY3", 0.7492], ["O81071", "Q9LK55", 0.7492], ["O81071", "Q9SAH1", 0.7492], ["P57752", "Q9SAH1", 0.7492], ["Q944J0", "Q9SAH1", 0.7492]], "sub_c4": [["P46639", "Q6EVK6", 0.8854], ["Q9M1U4", "Q9XI07", 0.7492], ["Q9LXU1", "Q9S7W5", 0.8646], ["P46639", "Q9LT89", 0.8792], ["Q9C518", "Q9LQF0", 0.8753], ["O64647", "Q93Z00", 0.8646], ["O82277", "Q9LQT8", 0.7492], ["Q9FME3", "Q9FTA2", 0.8753], ["O82277", "Q8L8A5", 0.8646], ["Q9LVG2", "Q9LXU1", 0.8282], ["F4JI72", "Q9S7W5", 0.8282], ["Q8LPR5", "Q9LVG2", 0.8646], ["F4K5X6", "Q9LQF0", 0.8646], ["Q8LPR5", "Q94AI7", 0.7492], ["F4JI72", "Q84MB2", 0.8282], ["O80748", "Q9LVG2", 0.8646], ["P48000", "Q8H1F2", 0.7492]], "train_nodes": ["Q1EC66", "Q93Z00", "O24456", "Q9C9L2", "P42643", "Q9S7W5", "Q8LPR5", "Q9LXU1", "Q9SZD4", "Q9SQH9", "Q84MB2", "Q01525", "Q9LMN8", "Q6EVK6", "Q9LQF0", "Q38942", "Q94F58", "Q24JJ9", "Q9XI07", "O23160", "O23140", "O82277", "Q42551", "Q94AI7", "P30187", "Q9FLP5", "Q9FZK5", "P55852", "Q8H1F2", "Q96291", "Q8VZ95", "P25071", "O64647", "Q17TI5", "Q9LZ00", "P24100", "C0SUZ3", "P46639", "Q39026", "F4JI72", "Q9FHW7", "Q9LT89", "F4JN35", "P48348", "Q9LQT8", "O80748", "Q8L8A5", "Q9SLH3", "Q9LVG2", "Q9FTA2", "Q8L7S9", "Q84JG2", "Q8VZW1", "Q9M1Z5", "Q9C518", "Q39057", "Q9ZPS9", "Q9FMX2", "P94077", "Q06611", "O23320", "F4K5X6", "Q39237", "O64722", "Q9FME3", "Q8L4B2", "P49177", "P48000", "Q38845", "Q9M1U4"], "test_nodes": ["Q9SVG8", "P43286", "P42644", "Q8LAA6", "Q9M9S6", "Q29Q28", "C0LGF4", "F4IHS9", "Q8W4J2", "Q500Z4", "Q8VZU9", "Q8LCY3", "Q9SV74", "Q9SR93", "Q39241", "Q9FRR1", "Q9SIE6", "Q9FWR4", "Q9LK55", "Q9SYK5", "Q944J0", "Q9C7D7", "Q1EC69", "P57752", "Q9SJJ5", "Q9FNY0", "Q9SAH1", "Q9SHI7", "Q9CAC5", "Q8L9S0", "Q9ZRW8", "Q9LRY0", "Q9C5I0", "Q9XIF4", "Q941L0", "O81071", "P48491", "F4I1Z0", "Q9SZT7", "Q8LGA1", "O22622", "P38389", "Q9LW56", "Q9ZW11", "Q9LMT0", "Q9LW08", "Q9LJK3", "Q8VYP7", "Q9SX96", "Q8RWZ6"]}};
+
+    const canvas = document.getElementById('graph-canvas');
+    const ctx = canvas.getContext('2d');
+    const inspector = document.getElementById('inspector-card');
+
+    let scale = 1.0;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let hoveredNode = null;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.parentElement.clientWidth * dpr;
+      canvas.height = canvas.parentElement.clientHeight * dpr;
+      ctx.scale(dpr, dpr);
+      render();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function toScreen(x, y) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      return {
+        x: (x - 620) * scale + w / 2 + panX,
+        y: (y - 470) * scale + h / 2 + panY
+      };
+    }
+
+    function toWorld(sx, sy) {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      return {
+        x: (sx - w / 2 - panX) / scale + 620,
+        y: (sy - h / 2 - panY) / scale + 470
+      };
+    }
+
+    function render() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Background - Pure White
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+
+      const showC1 = document.getElementById('toggle-c1').checked;
+      const showC4 = document.getElementById('toggle-c4').checked;
+      const showC2 = document.getElementById('toggle-c2').checked;
+      const showC3 = document.getElementById('toggle-c3').checked;
+
+      const nodes = DATA.core.nodes;
+
+      // 1. Cluster Backdrops
+      const pTrain = toScreen(380, 470);
+      const rTrain = 255 * scale;
+      ctx.beginPath();
+      ctx.arc(pTrain.x, pTrain.y, rTrain, 0, Math.PI * 2);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fill();
+      ctx.strokeStyle = '#bfdbfe';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const pTest = toScreen(860, 470);
+      const rTest = 235 * scale;
+      ctx.beginPath();
+      ctx.arc(pTest.x, pTest.y, rTest, 0, Math.PI * 2);
+      ctx.fillStyle = '#fef2f2';
+      ctx.fill();
+      ctx.strokeStyle = '#fecaca';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Partition Boundary Line
+      const pTop = toScreen(620, 200);
+      const pBot = toScreen(620, 740);
+      ctx.beginPath();
+      ctx.moveTo(pTop.x, pTop.y);
+      ctx.lineTo(pBot.x, pBot.y);
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2 * scale;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Section Labels
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#1e40af';
+      ctx.fillText('TRAINING PARTITION (V_train)', pTrain.x, pTrain.y - rTrain - 15);
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(DATA.v_train_size.toLocaleString() + ' Unique Proteins (85% C1 Train + 5% C4 Seen Test)', pTrain.x, pTrain.y - rTrain + 2);
+
+      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.fillStyle = '#991b1b';
+      ctx.fillText('TEST PARTITION (V_test)', pTest.x, pTest.y - rTest - 15);
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(DATA.v_test_size.toLocaleString() + ' Unique Proteins (5% C3 Both Unseen Test)', pTest.x, pTest.y - rTest + 2);
+
+      // 2. Render Edges
+      if (showC1) {
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 1.2 * scale;
+        ctx.globalAlpha = 0.55;
+        DATA.core.sub_c1.forEach(([a, b]) => {
+          if (nodes[a] && nodes[b]) {
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      if (showC4) {
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 2.0 * scale;
+        ctx.globalAlpha = 0.85;
+        ctx.setLineDash([4, 2]);
+        DATA.core.sub_c4.forEach(([a, b]) => {
+          if (nodes[a] && nodes[b]) {
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+        });
+        ctx.setLineDash([]);
+      }
+
+      if (showC3) {
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.globalAlpha = 0.75;
+        DATA.core.sub_c3.forEach(([a, b]) => {
+          if (nodes[a] && nodes[b]) {
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      if (showC2) {
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1.8 * scale;
+        ctx.globalAlpha = 0.80;
+        DATA.core.sub_c2.forEach(([a, b]) => {
+          if (nodes[a] && nodes[b]) {
+            const pa = toScreen(nodes[a].x, nodes[a].y);
+            const pb = toScreen(nodes[b].x, nodes[b].y);
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          }
+        });
+      }
+
+      ctx.globalAlpha = 1.0;
+
+      // 3. Render Nodes
+      for (const [id, m] of Object.entries(nodes)) {
+        const p = toScreen(m.x, m.y);
+        const r = Math.min(11, Math.max(5, 4 + Math.sqrt(m.total_deg))) * scale;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = m.is_train ? '#1d4ed8' : '#b91c1c';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+
+        if (hoveredNode && hoveredNode.id === id) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Mouse Interaction
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        render();
+        return;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const world = toWorld(mx, my);
+
+      let found = null;
+      for (const [id, m] of Object.entries(DATA.core.nodes)) {
+        const dx = m.x - world.x;
+        const dy = m.y - world.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const r = Math.min(11, Math.max(5, 4 + Math.sqrt(m.total_deg)));
+        if (dist <= r + 4) {
+          found = m;
+          break;
+        }
+      }
+
+      hoveredNode = found;
+      if (found) {
+        inspector.style.opacity = '1';
+        document.getElementById('node-id').textContent = found.id;
+        document.getElementById('node-tag').textContent = found.is_train ? 'V_train' : 'V_test';
+        document.getElementById('node-partition').textContent = found.partition;
+        document.getElementById('node-degree').textContent = found.total_deg;
+        document.getElementById('node-deg-c1').textContent = found.deg_c1;
+        document.getElementById('node-deg-c4').textContent = found.deg_c4;
+        document.getElementById('node-deg-c2').textContent = found.deg_c2;
+        document.getElementById('node-deg-c3').textContent = found.deg_c3;
+      } else {
+        inspector.style.opacity = '0';
+      }
+      render();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      scale = Math.min(5.0, Math.max(0.3, scale * zoomFactor));
+      render();
+    }, { passive: false });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      scale = 1.0;
+      panX = 0;
+      panY = 0;
+      hoveredNode = null;
+      render();
+    });
+
+    // Layer checkboxes
+    ['toggle-c1', 'toggle-c4', 'toggle-c2', 'toggle-c3'].forEach(id => {
+      document.getElementById(id).addEventListener('change', render);
+    });
+
+    // 300 DPI Export
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 3600;
+      exportCanvas.height = 2400;
+      const eCtx = exportCanvas.getContext('2d');
+
+      eCtx.fillStyle = '#ffffff';
+      eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+      const prevScale = scale;
+      const prevPanX = panX;
+      const prevPanY = panY;
+
+      scale = 3.0;
+      panX = 0;
+      panY = 0;
+
+      // Draw directly onto high-res canvas
+      const oldCanvas = canvas;
+      render();
+
+      const link = document.createElement('a');
+      link.download = `c1234_ppi_network_id${DATA.theta.replace('.', '_')}_cov${DATA.cmin.replace('.', '_')}_300dpi.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+
+      scale = prevScale;
+      panX = prevPanX;
+      panY = prevPanY;
+      render();
+    });
+
+    // Initialize
+    resizeCanvas();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+Identity_Theta	Coverage_Cmin	Total_Pairs	C1_Train_Pairs	C1_Train_Pct	C1_Train_Prots	C2_Test_Pairs	C2_Test_Pct	C2_Test_Prots	C2_Train_Side_Prots	C2_Test_Side_Prots	C3_Test_Pairs	C3_Test_Pct	C3_Test_Prots	C4_Test_Pairs	C4_Test_Pct	C4_Test_Prots	Total_Unique_Prots	V_Train_Prots	V_Test_Prots	Verification_Status
+0.50	0.80	22897	19462	85.00%	7844	1145	5.00%	1069	801	268	1145	5.00%	456	1145	5.00%	1482	8426	7970	456	PASS
