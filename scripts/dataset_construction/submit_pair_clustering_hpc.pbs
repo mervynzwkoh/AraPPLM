@@ -3,22 +3,26 @@
 # submit_pair_clustering_hpc.pbs
 # ==============================================================================
 # PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
-# Executes MMseqs2 all-vs-all search and pair-level redundancy parameter sweep.
+# Executes pair-level redundancy parameter sweep across sequence identity
+# thresholds [0.40, 0.50, 0.60, 0.70, 0.80] at fixed coverage 0.80.
 #
 # Submit with:
 #   qsub scripts/dataset_construction/submit_pair_clustering_hpc.pbs
 #
 # Check status:
 #   qstat -u $USER
+#
+# View real-time log:
+#   tail -f logs_pair_clustering_id_sweep.log
 # ==============================================================================
 
-#PBS -N ara_ppi_clustering
+#PBS -N ara_ppi_clustering_id_sweep
 #PBS -P personal-e0969134
 #PBS -q normal
 #PBS -l select=1:ncpus=16:mem=64gb
-#PBS -l walltime=03:00:00
+#PBS -l walltime=01:00:00
 #PBS -j oe
-#PBS -o logs_pair_clustering.log
+#PBS -o logs_pair_clustering_id_sweep.log
 
 # Move to job submission directory
 cd "${PBS_O_WORKDIR:-$PWD}"
@@ -30,23 +34,23 @@ echo "Job ID: ${PBS_JOBID:-LOCAL}"
 echo "========================================================================"
 
 # Load modules / Conda environment
-# 1. Source user bashrc to inherit conda init
+# Sourcing bashrc and conda profile script (disable nounset during sourcing)
+set +u 2>/dev/null || true
 if [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc"
+    source "$HOME/.bashrc" 2>/dev/null || true
 fi
 
-# 2. Source conda profile script if available
 if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+    source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
-    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+    source "$HOME/miniforge3/etc/profile.d/conda.sh" 2>/dev/null || true
 elif [ -f "/app1/common/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "/app1/common/miniconda3/etc/profile.d/conda.sh"
+    source "/app1/common/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || true
 else
     module load miniforge3 2>/dev/null || module load miniconda3 2>/dev/null || true
 fi
 
-# 3. Add mmseqs2_env bin directory to PATH (provides mmseqs binary)
+# 1. Add mmseqs2_env bin directory to PATH (provides mmseqs binary if needed)
 conda activate mmseqs2_env 2>/dev/null || true
 for env_dir in \
     "$HOME/.conda/envs/mmseqs2_env/bin" \
@@ -60,7 +64,7 @@ for env_dir in \
     fi
 done
 
-# 4. Activate python11 (provides Python 3.11 environment)
+# 2. Activate python11 (provides Python 3.11 environment with numpy, scipy, etc.)
 conda activate python11 2>/dev/null || true
 for py_dir in \
     "$HOME/.conda/envs/python11/bin" \
@@ -76,12 +80,16 @@ done
 
 # Diagnostics
 echo "Current PATH: $PATH"
-which mmseqs || echo "ERROR: mmseqs still not found in PATH"
+which mmseqs || echo "Notice: mmseqs not in PATH (not needed if ara_prot_all_vs_all.tsv exists)"
 which python3 || echo "ERROR: python3 not found in PATH"
 python3 --version 2>/dev/null || true
 
 # Set number of threads to match ncpus requested
 export THREADS=16
+
+# Identity sensitivity sweep parameters: theta in [0.40, 0.50, 0.60, 0.70, 0.80], cmin=0.80
+export THETAS="0.40 0.50 0.60 0.70 0.80"
+export CMINS="0.80"
 
 # Execute pipeline script
 bash scripts/dataset_construction/run_pair_clustering_pipeline.sh

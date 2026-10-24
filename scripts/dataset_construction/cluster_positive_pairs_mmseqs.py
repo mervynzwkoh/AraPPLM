@@ -15,9 +15,9 @@ Usage:
     python3 cluster_positive_pairs_mmseqs.py \\
         --pairs_tsv data/dataset_construction/01_positive_pairs/arabidopsis/ara_positive_pairs_high_only_hetero.tsv \\
         --alignments_tsv data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv \\
-        --theta 0.40 --cmin 0.50
+        --theta 0.40 --cmin 0.80
 
-    # Full multi-parameter grid sweep (theta in [0.40, 0.70, 0.90] x cmin in [0.50, 0.70, 0.80, 0.90]):
+    # Sensitivity grid sweep (theta in [0.40, 0.50, 0.60, 0.70, 0.80] at fixed cmin 0.80):
     python3 cluster_positive_pairs_mmseqs.py \\
         --pairs_tsv data/dataset_construction/01_positive_pairs/arabidopsis/ara_positive_pairs_high_only_hetero.tsv \\
         --alignments_tsv data/dataset_construction/03_homology_clustering/arabidopsis/ara_prot_all_vs_all.tsv \\
@@ -453,6 +453,11 @@ def write_summary_tables(output_dir, sweep_metrics):
             
     with open(summary_md, "w", encoding="utf-8") as f:
         f.write("# Summary of Arabidopsis Pair Redundancy Clustering Parameter Sweep\n\n")
+        thetas_swept = sorted(list({m['theta'] for m in sweep_metrics}))
+        cmins_swept = sorted(list({m['cmin'] for m in sweep_metrics}))
+        thetas_str = ", ".join([f"{t:.2f}" for t in thetas_swept])
+        cmins_str = ", ".join([f"{c:.2f}" for c in cmins_swept])
+        f.write(f"The parameter sweep evaluates **{len(sweep_metrics)}** configuration(s) across sequence identity ($\\theta \\in \\{{{thetas_str}\\}}$) and alignment coverage ($c_{{\\min}} \\in \\{{{cmins_str}\\}}$) on the **30,376** high-confidence heteromeric positive pairs (comprising **8,970** unique proteins):\n\n")
         f.write("| Identity Threshold ($\\theta$) | Coverage ($c_{\\min}$) | Non-Redundant Pairs | Unique Proteins | Redundancy Removed (%) | Total Clusters | Avg Cluster Size | Max Cluster Size | Min Cluster Size | Multi-Pair Clusters | Singletons | Runtime |\n")
         f.write("|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|\n")
         for m in sweep_metrics:
@@ -473,8 +478,8 @@ def write_summary_tables(output_dir, sweep_metrics):
         f.write("- **`--cov-mode 0`**: Reciprocal / bidirectional coverage mode: $\\min(\\text{cov}_{\\text{query}}, \\text{cov}_{\\text{target}}) \\ge c$.\n")
         f.write("- **`--threads 16`**: 16 CPU cores utilized for multi-threaded alignment.\n\n")
         f.write("### B. Pair Similarity & Clustering Parameters\n")
-        f.write("- **$\\theta$ (Identity Threshold)**: Minimum sequence identity fraction required for single-protein homology ($s(X, Y) \\ge \\theta$). Evaluated at 0.40 (fold/structural cutoff), 0.70 (paralog/WGD cutoff), and 0.90 (near-identical copy cutoff).\n")
-        f.write("- **$c_{\\min}$ (Coverage Threshold)**: Minimum reciprocal alignment coverage required for homology ($\\min(\\text{qcov}, \\text{tcov}) \\ge c_{\\min}$). Prevents short local motif matches (e.g. 20-30 residue ATP loops or zinc fingers) from falsely flagging full-length proteins as homologous.\n")
+        f.write("- **$\\theta$ (Identity Threshold)**: Minimum sequence identity fraction required for single-protein homology ($s(X, Y) \\ge \\theta$). In this sensitivity sweep, $\\theta \\in [0.40, 0.50, 0.60, 0.70, 0.80]$ systematically evaluates the transition from structural fold conservation (0.40) up to near-duplicate paralogs (0.80).\n")
+        f.write("- **$c_{\\min}$ (Coverage Threshold)**: Minimum reciprocal alignment coverage required for homology ($\\min(\\text{qcov}, \\text{tcov}) \\ge c_{\\min}$). Fixed at $0.80$ (80% reciprocal alignment coverage) to prevent short local motif matches (e.g. 20-30 residue ATP loops or zinc fingers) from falsely flagging full-length proteins as homologous.\n")
         f.write("- **`max_evalue 1e-3`**: Maximum E-value cutoff to ensure sequence alignment statistical significance.\n")
         f.write("- **Pair Similarity Metric**: $S(P_i, P_j) = \\max[\\min(s(A,C), s(B,D)), \\min(s(A,D), s(B,C))]$. The `min` operator enforces that both interactors must be homologous; `max` accounts for interaction symmetry.\n")
         f.write("- **Representative Selection Priority**: Greedy priority hierarchy: HIPPIE confidence score (`score` desc) $\\rightarrow$ total evidence count (`evidence_count` desc) $\\rightarrow$ combined protein length ($L_A + L_B$ desc) $\\rightarrow$ lexicographical IDs.\n")
@@ -496,11 +501,11 @@ def main():
     parser.add_argument("--output_dir", type=str, default="data/dataset_construction/03_homology_clustering/arabidopsis",
                         help="Output directory")
     parser.add_argument("--theta", type=float, default=0.40, help="Sequence identity threshold for single-run (default: 0.40)")
-    parser.add_argument("--cmin", type=float, default=0.50, help="Alignment coverage threshold for single-run (default: 0.50)")
-    parser.add_argument("--thetas", type=float, nargs="+", default=[0.40, 0.70, 0.90],
-                        help="List of sequence identity thresholds to sweep (default: 0.40 0.70 0.90)")
-    parser.add_argument("--cmins", type=float, nargs="+", default=[0.50, 0.70, 0.80, 0.90],
-                        help="List of coverage thresholds to sweep (default: 0.50 0.70 0.80 0.90)")
+    parser.add_argument("--cmin", type=float, default=0.80, help="Alignment coverage threshold for single-run (default: 0.80)")
+    parser.add_argument("--thetas", type=float, nargs="+", default=[0.40, 0.50, 0.60, 0.70, 0.80],
+                        help="List of sequence identity thresholds to sweep (default: 0.40 0.50 0.60 0.70 0.80)")
+    parser.add_argument("--cmins", type=float, nargs="+", default=[0.80],
+                        help="List of coverage thresholds to sweep (default: 0.80)")
     parser.add_argument("--sweep", action="store_true",
                         help="Run full parameter grid sweep across specified --thetas and --cmins")
     
