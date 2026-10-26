@@ -1,0 +1,48 @@
+#!/bin/bash
+# ==============================================================================
+# submit_filter_negative_interologs_hpc.pbs
+# ==============================================================================
+# PBS Batch Submission Script for NSCC ASPIRE 2A / PBS Pro Clusters
+# Executes Stage 2.5 Candidate Negative Homology Filtering:
+#   1. Builds unified FASTA (canonical proteome + positive interactors)
+#   2. Runs MMseqs2 all-vs-all search on unified proteome
+#   3. Filters all candidate negative Parquet chunks to remove positive interologs
+#      satisfying S(P_neg, P_pos) >= 0.50 (cov >= 0.80, evalue <= 1e-3).
+#
+# Submit with:
+#   qsub scripts/dataset_construction/submit_filter_negative_interologs_hpc.pbs
+#
+# Check status:
+#   qstat -u $USER
+#
+# Monitor log:
+#   tail -f logs_filter_negative_interologs.log
+# ==============================================================================
+
+#PBS -N ara_filter_neg_interologs
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=16:mem=32gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o logs_filter_negative_interologs.log
+
+# Move to job submission directory
+cd "${PBS_O_WORKDIR:-$PWD}"
+
+echo "========================================================================"
+echo "Job started on: $(hostname) at $(date)"
+echo "Working directory: $(pwd)"
+echo "Job ID: ${PBS_JOBID:-LOCAL}"
+echo "========================================================================"
+
+# Execute the pipeline runner
+bash scripts/dataset_construction/run_filter_negative_interologs_hpc.sh
+
+EXIT_CODE=$?
+echo ""
+echo "========================================================================"
+echo "Job finished with exit code ${EXIT_CODE} at $(date)"
+echo "========================================================================"
+
+exit ${EXIT_CODE}
