@@ -17,11 +17,15 @@ docs/dataset_construction/
 │   ├── 02_maize_positive_pairs.md         # Zea mays (50,984 deduplicated pairs)
 │   └── 03_rice_tomato_soybean_positive_pairs.md # Rice (998 / 667 PPI), Tomato (123), Soybean (48)
 │
-├── 02_negative_sampling/                  # [STAGE 2: UPCOMING] Decoy generation & non-interacting controls
+├── 02_negative_sampling/                  # [STAGE 2: COMPLETE] Decoy generation & non-interacting controls
+│   └── 01_arabidopsis_negative_dataset_construction.md # 5-phase negative construction & filtering methodology
 │
-├── 03_homology_clustering/                # [STAGE 3: UPCOMING] Redundancy reduction (CD-HIT / MMseqs2)
+├── 03_homology_clustering/                # [STAGE 3: COMPLETE] Redundancy reduction (CD-HIT / MMseqs2)
+│   ├── 01_pair_redundancy_reduction.md    # Pair-level homology clustering methodology
+│   └── summary_clustering_metrics.md      # Parameter sweep report across 8 homology conditions
 │
-└── 04_benchmark_splits/                   # [STAGE 4: UPCOMING] C1/C2/C3 splits & cross-species benchmarks
+└── 04_benchmark_splits/                   # [STAGE 4: COMPLETE] C1/C2/C3/C4 splits & network partitions
+    └── summary_positive_c1234_partitions.md # 85% C1, 5% C2, 5% C3, 5% C4 benchmark splits
 ```
 
 ---
