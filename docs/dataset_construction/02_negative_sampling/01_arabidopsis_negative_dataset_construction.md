@@ -173,6 +173,25 @@ $$\text{TAIR Evidence Confidence (desc)} \longrightarrow \text{Combined Length }
 
 ---
 
+### 6.3 Execution Results & Audit Dashboard
+The redundancy reduction job completed on NSCC ASPIRE 2A in **627.64 seconds** (~10.5 minutes), processing all 102 filtered Parquet chunks and yielding **51 final non-redundant Parquet chunks**:
+
+| Metric | Evaluated Result |
+| :--- | :--- |
+| **Input Clean Candidate Negatives** | **101,851,542** pairs |
+| **Paralogous Redundant Pairs Pruned** | **51,542,812** pairs (**50.61%**) |
+| **Final Non-Redundant Negative Pool ($\\mathcal{P}_{\\text{neg, NR}}$)** | **50,308,730** pairs (**49.39%**) |
+| **Unique Proteins Represented** | **15,909** canonical proteins |
+| **Total Homology Component-Pair Signatures** | **45,785,498** groups |
+| **Singleton Component Pairs (Fast-Path Retained)** | **27,800,435** pairs |
+| **Multi-Pair Paralog Micro-Clusters Resolved** | **17,985,063** groups |
+| **Output Final Parquet Chunks** | **51** chunks (~1M pairs/chunk) |
+| **Execution Duration** | **627.64 seconds** (10.46 min) |
+
+All 50,308,730 pairs in the final pool strictly satisfy $\\forall P_i, P_j \\in \\mathcal{P}_{\\text{neg, NR}} \\ (i \\ne j): S(P_i, P_j) < 0.50$.
+
+---
+
 ## 7. Scripts & HPC Execution Guide
 
 All steps are self-contained and pre-configured for NSCC ASPIRE 2A:
