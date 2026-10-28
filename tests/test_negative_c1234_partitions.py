@@ -202,6 +202,28 @@ class TestNegativeC1234Partitions(unittest.TestCase):
                 lines = f.readlines()
                 self.assertEqual(len(lines), p_cnt + n_cnt + 1)  # +1 for header
 
+    def test_sample_topk_capping_behavior(self):
+        """
+        Verify that sample_topk_with_tiebreak properly caps when allow_cap=True
+        and raises ValueError when allow_cap=False.
+        """
+        chunk_arr = np.array([1, 1, 1], dtype=np.uint16)
+        row_arr = np.array([0, 1, 2], dtype=np.uint32)
+        score_arr = np.array([100, 200, 150], dtype=np.int64)
+
+        # 1. When allow_cap=True and requested > available
+        sel_c, sel_r, sel_s = partition_mod.sample_topk_with_tiebreak(
+            chunk_arr, row_arr, score_arr, target_k=10, seed=42, allow_cap=True, pool_name="TestPool"
+        )
+        self.assertEqual(len(sel_c), 3)
+        self.assertEqual(list(sel_s), [200, 150, 100])
+
+        # 2. When allow_cap=False and requested > available -> raises ValueError
+        with self.assertRaises(ValueError):
+            partition_mod.sample_topk_with_tiebreak(
+                chunk_arr, row_arr, score_arr, target_k=10, seed=42, allow_cap=False
+            )
+
     def test_disk_benchmark_partitions_if_present(self):
         """
         If the actual negative partition files are generated in data/dataset_construction/04_benchmark_splits/,

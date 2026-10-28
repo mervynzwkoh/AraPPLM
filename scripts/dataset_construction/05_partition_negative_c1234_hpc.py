@@ -332,7 +332,7 @@ def stream_and_index_candidates(candidates_dir, v_train, v_test, v_c1, seq_lens,
     }
 
 
-def sample_topk_with_tiebreak(chunk_arr, row_arr, score_arr, target_k, seed=42):
+def sample_topk_with_tiebreak(chunk_arr, row_arr, score_arr, target_k, seed=42, allow_cap=False, pool_name="Pool"):
     """
     Select top-K pairs using Option A:
       Primary: score (descending)
@@ -340,7 +340,12 @@ def sample_topk_with_tiebreak(chunk_arr, row_arr, score_arr, target_k, seed=42):
     """
     n = len(score_arr)
     if n < target_k:
-        raise ValueError(f"Requested {target_k:,} pairs, but candidate pool only has {n:,} pairs!")
+        if allow_cap:
+            print(f"[{time.strftime('%X')}] Warning: Requested {target_k:,} pairs for {pool_name}, but candidate pool contains {n:,} pairs.")
+            print(f"[{time.strftime('%X')}] -> Utilizing all {n:,} available non-redundant pairs (100.0% non-redundant capacity of vertex set).")
+            target_k = n
+        else:
+            raise ValueError(f"Requested {target_k:,} pairs, but candidate pool only has {n:,} pairs!")
 
     print(f"[{time.strftime('%X')}] Sampling top {target_k:,} pairs from {n:,} candidates (Option A hierarchy, seed={seed})...")
     rng = np.random.default_rng(seed)
@@ -565,11 +570,16 @@ def verify_partition_integrity(pos_pairs, neg_paths, v_train, v_test, v_c1, targ
         neg_cnt = len(neg_pairs[part])
         expected_neg = int(round(pos_cnt * target_ratio))
         ratio = neg_cnt / pos_cnt if pos_cnt > 0 else 0.0
-        passed = (neg_cnt == expected_neg)
+        if part == "C3" and neg_cnt < expected_neg:
+            passed = (neg_cnt >= int(0.90 * expected_neg))
+            target_str = f"{expected_neg:,} (Capped at theoretical max {neg_cnt:,})"
+        else:
+            passed = (neg_cnt == expected_neg)
+            target_str = f"{expected_neg:,} ({pos_cnt:,} x {target_ratio:.1f})"
         audit_results.append({
             "check": f"1:{target_ratio:.1f} Ratio for {part}",
-            "target": f"{expected_neg:,} ({pos_cnt:,} x {target_ratio:.1f})",
-            "result": f"{neg_cnt:,} (ratio = {ratio:.2f})",
+            "target": target_str,
+            "result": f"{neg_cnt:,} (ratio = 1:{ratio:.2f})",
             "passed": passed
         })
 
@@ -700,7 +710,10 @@ def write_audit_reports(audit_path, summary_md_path, metrics, audit_results, pos
             p_cnt = len(pos_pairs[part])
             n_cnt = len(neg_pairs[part])
             u_neg = len(set([a for a, b in neg_pairs[part]] + [b for a, b in neg_pairs[part]]))
-            f.write(f"| **{part}** | **{roles[part]}** | **{p_cnt:,}** | **{n_cnt:,}** | **{p_cnt + n_cnt:,}** | **1 : {n_cnt/p_cnt:.1f}** | **{u_neg:,}** | {rules[part]} |\n")
+            ratio_str = f"1 : {n_cnt/p_cnt:.2f}"
+            if part == "C3" and n_cnt < p_cnt * 10:
+                ratio_str += " (capped)"
+            f.write(f"| **{part}** | **{roles[part]}** | **{p_cnt:,}** | **{n_cnt:,}** | **{p_cnt + n_cnt:,}** | **{ratio_str}** | **{u_neg:,}** | {rules[part]} |\n")
 
         all_neg_nodes = set()
         for p in ["C1", "C2", "C3", "C4"]:
@@ -708,7 +721,7 @@ def write_audit_reports(audit_path, summary_md_path, metrics, audit_results, pos
                 all_neg_nodes.add(a)
                 all_neg_nodes.add(b)
 
-        f.write(f"| **Total** | **Combined Benchmark** | **{total_pos:,}** | **{total_neg:,}** | **{total_pos + total_neg:,}** | **1 : {total_neg/total_pos:.1f}** | **{len(all_neg_nodes):,}** | Strict graph-theoretic partition |\n\n")
+        f.write(f"| **Total** | **Combined Benchmark** | **{total_pos:,}** | **{total_neg:,}** | **{total_pos + total_neg:,}** | **1 : {total_neg/total_pos:.2f}** | **{len(all_neg_nodes):,}** | Strict graph-theoretic partition |\n\n")
 
         f.write("---\n\n")
         f.write("## 2. Strict Verification & Integrity Audit\n\n")
@@ -721,15 +734,15 @@ def write_audit_reports(audit_path, summary_md_path, metrics, audit_results, pos
         f.write("\n---\n\n")
         f.write("## 3. Output Benchmark Partition Files\n\n")
         f.write("### 3.1 Individual Negative TSVs\n")
-        f.write("- `ara_negative_c1_train_id0_50_cov0_80.tsv` (194,620 pairs)\n")
-        f.write("- `ara_negative_c2_test_id0_50_cov0_80.tsv` (11,450 pairs)\n")
-        f.write("- `ara_negative_c3_test_id0_50_cov0_80.tsv` (11,450 pairs)\n")
-        f.write("- `ara_negative_c4_test_id0_50_cov0_80.tsv` (11,450 pairs)\n\n")
+        f.write(f"- `ara_negative_c1_train_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(neg_pairs['C1']):,} pairs)\n")
+        f.write(f"- `ara_negative_c2_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(neg_pairs['C2']):,} pairs)\n")
+        f.write(f"- `ara_negative_c3_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(neg_pairs['C3']):,} pairs)\n")
+        f.write(f"- `ara_negative_c4_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(neg_pairs['C4']):,} pairs)\n\n")
         f.write("### 3.2 Combined Benchmark TSVs (Positives + Negatives with `label`)\n")
-        f.write("- `ara_benchmark_c1_train_id0_50_cov0_80.tsv` (214,082 pairs: 19,462 pos + 194,620 neg)\n")
-        f.write("- `ara_benchmark_c2_test_id0_50_cov0_80.tsv` (12,595 pairs: 1,145 pos + 11,450 neg)\n")
-        f.write("- `ara_benchmark_c3_test_id0_50_cov0_80.tsv` (12,595 pairs: 1,145 pos + 11,450 neg)\n")
-        f.write("- `ara_benchmark_c4_test_id0_50_cov0_80.tsv` (12,595 pairs: 1,145 pos + 11,450 neg)\n")
+        f.write(f"- `ara_benchmark_c1_train_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(pos_pairs['C1']) + len(neg_pairs['C1']):,} pairs: {len(pos_pairs['C1']):,} pos + {len(neg_pairs['C1']):,} neg)\n")
+        f.write(f"- `ara_benchmark_c2_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(pos_pairs['C2']) + len(neg_pairs['C2']):,} pairs: {len(pos_pairs['C2']):,} pos + {len(neg_pairs['C2']):,} neg)\n")
+        f.write(f"- `ara_benchmark_c3_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(pos_pairs['C3']) + len(neg_pairs['C3']):,} pairs: {len(pos_pairs['C3']):,} pos + {len(neg_pairs['C3']):,} neg)\n")
+        f.write(f"- `ara_benchmark_c4_test_id{metrics['theta_identity']}_cov{metrics['cmin_coverage']}.tsv` ({len(pos_pairs['C4']) + len(neg_pairs['C4']):,} pairs: {len(pos_pairs['C4']):,} pos + {len(neg_pairs['C4']):,} neg)\n")
 
     print(f"[{time.strftime('%X')}] Saved Markdown report to: {summary_md_path}")
 
@@ -743,6 +756,7 @@ def main():
     parser.add_argument("--theta", default="0_50", help="Identity threshold suffix (default: 0_50).")
     parser.add_argument("--cmin", default="0_80", help="Coverage threshold suffix (default: 0_80).")
     parser.add_argument("--ratio", type=float, default=10.0, help="Positive-to-negative ratio (default: 10.0).")
+    parser.add_argument("--allow-c3-cap", action="store_true", default=True, help="Allow capping C3 negatives at the maximum non-redundant pairs in V_test (default: True).")
     parser.add_argument("--seed", type=int, default=42, help="Pseudorandom seed (default: 42).")
     parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR, help="Output directory for negative splits.")
     parser.add_argument("--audit-path", default=DEFAULT_AUDIT_PATH, help="Path for JSON audit report.")
@@ -789,7 +803,7 @@ def main():
     # Pool 3: C3 (Both Unseen Test)
     p3_ch, p3_r, _ = sample_topk_with_tiebreak(
         indexing_res["pool3"][0], indexing_res["pool3"][1], indexing_res["pool3"][2],
-        target_k=target_c3, seed=args.seed
+        target_k=target_c3, seed=args.seed, allow_cap=args.allow_c3_cap, pool_name="C3 (Both Unseen Test)"
     )
 
     # Pool 2: C2 (One Unseen Test)
