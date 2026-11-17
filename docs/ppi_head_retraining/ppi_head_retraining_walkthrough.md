@@ -224,9 +224,9 @@ python -u scripts/training/test_ppi_head.py \
 #### Stage 5: Evaluation & Multi-Pooling Ablation Summary
 ```bash
 python -u scripts/benchmarking/evaluate_pplm.py \
-    --c2 results/DeepAraPPI/pretrained/deepara_c2_combine_mean_max_min_scores.csv \
-    --c3 results/DeepAraPPI/pretrained/deepara_c3_combine_mean_max_min_scores.csv \
-    --rice results/DeepAraPPI/pretrained/deepara_rice_combine_mean_max_min_scores.csv \
+    --c2 results/DeepAraPPI/pretrained/deepara_c2_combine_mean_max_scores.csv \
+    --c3 results/DeepAraPPI/pretrained/deepara_c3_combine_mean_max_scores.csv \
+    --rice results/DeepAraPPI/pretrained/deepara_rice_combine_mean_max_scores.csv \
     --pooling_ablation_dir results/DeepAraPPI/pretrained/ \
     --suite DeepAraPPI \
     --output_dir results/DeepAraPPI/pretrained/

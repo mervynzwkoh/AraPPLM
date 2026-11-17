@@ -208,9 +208,9 @@ fi
 # ==============================================================================
 echo -e "\n>>> [Stage 5] Running evaluation metrics and pooling ablation summary <<<"
 python -u scripts/benchmarking/evaluate_pplm.py \
-    --c2 "$RESULT_DIR/deepara_c2_combine_mean_max_min_scores.csv" \
-    --c3 "$RESULT_DIR/deepara_c3_combine_mean_max_min_scores.csv" \
-    --rice "$RESULT_DIR/deepara_rice_combine_mean_max_min_scores.csv" \
+    --c2 "$RESULT_DIR/deepara_c2_combine_mean_max_scores.csv" \
+    --c3 "$RESULT_DIR/deepara_c3_combine_mean_max_scores.csv" \
+    --rice "$RESULT_DIR/deepara_rice_combine_mean_max_scores.csv" \
     --pooling_ablation_dir "$RESULT_DIR" \
     --suite DeepAraPPI \
     --output_dir "$RESULT_DIR"

@@ -11,9 +11,9 @@ combine_mean_min).
 Usage:
     # Evaluate multiple DeepAraPPI task predictions at once:
     python scripts/benchmarking/evaluate_pplm.py \
-        --c2 results/DeepAraPPI/pretrained/deepara_c2_combine_mean_max_min_scores.csv \
-        --c3 results/DeepAraPPI/pretrained/deepara_c3_combine_mean_max_min_scores.csv \
-        --rice results/DeepAraPPI/pretrained/deepara_rice_combine_mean_max_min_scores.csv \
+        --c2 results/DeepAraPPI/pretrained/deepara_c2_combine_mean_max_scores.csv \
+        --c3 results/DeepAraPPI/pretrained/deepara_c3_combine_mean_max_scores.csv \
+        --rice results/DeepAraPPI/pretrained/deepara_rice_combine_mean_max_scores.csv \
         --output_dir results/DeepAraPPI/pretrained/
 
     # Or summarize all 6 pooling combinations in a directory:

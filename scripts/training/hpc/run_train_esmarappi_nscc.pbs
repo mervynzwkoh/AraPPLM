@@ -197,8 +197,8 @@ run_test_suite "c3" "$C3_DATASET" "$FEAT_DIR_C3"
 # ==============================================================================
 echo -e "\n>>> [Stage 5] Running evaluation metrics and pooling ablation summary <<<"
 python -u scripts/benchmarking/evaluate_pplm.py \
-    --esm_c2 "$RESULT_DIR/esmarappi_c2_combine_mean_max_min_scores.csv" \
-    --esm_c3 "$RESULT_DIR/esmarappi_c3_combine_mean_max_min_scores.csv" \
+    --esm_c2 "$RESULT_DIR/esmarappi_c2_combine_mean_max_scores.csv" \
+    --esm_c3 "$RESULT_DIR/esmarappi_c3_combine_mean_max_scores.csv" \
     --pooling_ablation_dir "$RESULT_DIR" \
     --suite ESMAraPPI \
     --output_dir "$RESULT_DIR"
