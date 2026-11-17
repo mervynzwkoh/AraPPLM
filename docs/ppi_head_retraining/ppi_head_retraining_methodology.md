@@ -17,7 +17,7 @@ The PPLM-PPI prediction head was originally trained on human/model-organism PPI 
 | Property | Value |
 |----------|-------|
 | **Source** | Zheng et al., "DeepAraPPI" (The Plant Journal, 2023) |
-| **File** | `data/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt` |
+| **File** | `data/legacy_benchmarks/DeepAraPPI/c1_ppi_sample_DeepAraPPI.txt` |
 | **Total pairs** | 31,284 |
 | **Positive pairs** | 2,844 (high-quality PPIs from BioGRID, DIP, IntAct, MINT, TAIR; HIPPIE score ≥ 0.72) |
 | **Negative pairs** | 28,440 (random non-interacting pairs) |
@@ -30,7 +30,7 @@ The PPLM-PPI prediction head was originally trained on human/model-organism PPI 
 | Property | Value |
 |----------|-------|
 | **Source** | Zhou et al., "ESMAraPPI" (Plant Methods, 2023) |
-| **File** | `data/ESMAraPPI/c1_Train.txt` |
+| **File** | `data/legacy_benchmarks/ESMAraPPI/c1Train.txt` |
 | **Total pairs** | 38,709 |
 | **Positive pairs** | 3,519 (IntAct, "direct interaction" or "physical association", MIscore ≥ 0.45) |
 | **Negative pairs** | 35,190 (40% sequence identity filtering on negative candidates) |
@@ -78,7 +78,7 @@ For each protein pair, the backbone's raw outputs are **pooled** into fixed-size
 
 Dimension 660 = 33 layers × 20 heads. Three pooling strategies are computed: **mean**, **max**, and **min**, yielding 15 feature vectors per pair.
 
-These are saved as individual `.pkl` files in `features/{Dataset}_C1/{ProtA}@{ProtB}.pkl`.
+Following the original PPLM training and evaluation setup (`ppi_training_code/`), `.pkl` features are pre-extracted for **both** C1 training pairs and held-out test partitions (`C2`, `C3`, and `Rice`) into `features/{Dataset}_{Split}/{ProtA}@{ProtB}.pkl`. This allows both training and held-out testing to run via fast batched `DataLoader` (`batch_size=512`).
 
 ### 3.3 PPI Classifier MLP (Trainable — Stage 2)
 
@@ -110,30 +110,30 @@ The classifier is a 5-layer MLP operating on features from **one pooling mode at
 
 ### 4.1 Hyperparameters
 
-All hyperparameters match the original PPLM-PPI paper:
+All hyperparameters and determinism flags match the original PPLM-PPI training codebase (`ppi_training_code/training.PPI.single_gpu.cross_validation.py` and `run_training.sh`):
 
 | Hyperparameter | Value | Rationale |
 |----------------|-------|-----------|
 | **Optimizer** | AdamW | Following PPLM paper |
 | **Learning rate** | 5 × 10⁻⁵ | Following PPLM paper |
 | **Weight decay** | 0.01 | Following PPLM paper |
-| **Batch size** | 512 | Following PPLM paper |
+| **Batch size** | 512 | Following PPLM paper (`num_workers=8`, `prefetch_factor=4`, `pin_memory=True`) |
 | **Epochs** | 15 per fold | Following PPLM paper |
 | **Loss function** | Binary Cross-Entropy (BCE) | See §4.3 |
-| **Cross-validation** | 10-fold stratified | Maintains 1:10 class ratio per fold |
-| **Pooling modes** | mean, max | Following PPLM paper (min dropped for efficiency) |
-| **Data augmentation** | 50% random A↔B swapping | Enforces interaction symmetry |
-| **Random seed** | 26240761 | Deterministic reproducibility |
+| **Cross-validation** | 10-fold stratified pre-split files | Persists 1:10 class ratio per fold for independent `--cross_round 0..9` execution |
+| **Pooling modes** | `mean`, `max`, `min` | All 3 pooling modes trained matching `run_training.sh` |
+| **Data augmentation** | 50% random A↔B swapping (`order_mode="random"`) | Enforces interaction symmetry |
+| **Random seed** | `73591024` (`SEEDS[1]`, `--seed_round 1`) | Author's `run_training.sh` seed + `torch.backends.cudnn.enabled = False` |
 
 ### 4.2 Cross-Validation Procedure
 
-1. All C1 training pairs are split into 10 stratified folds using `sklearn.StratifiedKFold`, preserving the 1:10 positive-to-negative ratio in each fold
-2. For each fold: 9 folds for training, 1 for validation
+1. All C1 training pairs are partitioned once into 10 stratified folds using `sklearn.StratifiedKFold(n_splits=10, shuffle=True, random_state=73591024)` and persisted on disk as `{prefix}.cross_validation_{0..9}.trainset` and `.testset` files, preserving the 1:10 positive-to-negative ratio in every fold
+2. Each fold (`--cross_round 0..9`) runs as an independent, resumable process (9 folds train, 1 fold validation; checkpoint resumption via `model.pkl`)
 3. A fresh model is initialised for each fold (no weight transfer between folds)
-4. Per-epoch checkpoints are saved with validation metrics
-5. The process is repeated for each pooling mode (mean, max)
+4. Per-epoch checkpoints (`model_1.pkl`–`model_15.pkl`) and exact author-format `.recording` logs (`AUC_PR` at column 14) are saved
+5. The process is repeated for all three pooling modes (`mean`, `max`, `min`)
 
-Total training runs per dataset: **10 folds × 2 pooling modes = 20 training runs**
+Total training runs per dataset: **10 folds × 3 pooling modes = 30 training runs** (450 candidate checkpoints per dataset)
 
 ### 4.3 Loss Function Decision
 
@@ -145,23 +145,24 @@ Total training runs per dataset: **10 folds × 2 pooling modes = 20 training run
 
 ### 4.4 Model Selection & Ensemble
 
-After all training runs complete:
+After all 30 training runs complete:
 
-1. **Ranking**: All 150 checkpoints per pooling mode (10 folds × 15 epochs) are ranked by **validation AUPRC**
-2. **Selection**: Top-5 checkpoints per pooling mode are selected
-3. **Packaging**: The 10 model state_dicts (5 mean + 5 max) are saved as `ppi_plant_models.pkl`
+1. **Ranking**: All 150 checkpoints per pooling mode (10 folds × 15 epochs) are ranked globally by **validation `AUC_PR`** (column 14 of `========== Accuarcy Epoch:` lines)
+2. **Selection**: Top-5 checkpoints per pooling mode are selected and written to author-compatible path lists (`PPLM-PPI.inter_intra_attn_embed.{mode}.round_1.top5_list`)
+3. **Packaging**: The 15 selected model `state_dict`s (`5 mean + 5 max + 5 min`) are also packaged into `ppi_plant_models.pkl`
 
 ### 4.5 Inference Protocol
 
-At test time, for each protein pair:
-1. Run PPLM backbone to extract features (same as Stage 1)
-2. For each of the 10 ensemble classifiers:
-   - Run forward pass: A→B prediction
-   - Run swapped pass: B→A prediction
+Following `ppi_training_code/testing.PPI.single_gpu.multi-model.multi_pooling.py` and `run_testing.sh`, held-out evaluation runs over **pre-extracted `.pkl` test features** via `Dataset_PPI_Interact` and `DataLoader(batch_size=512)`:
+1. For each test pair in the batch and each selected classifier in the ensemble:
+   - Run forward pass: $A \to B$ prediction
+   - Run swapped pass: $B \to A$ prediction (`order_mode="both"`)
    - Average the two (symmetric pair averaging)
-3. Final score = mean of all 10 averaged predictions
+2. Final score = mean across all models in the evaluated pooling combination:
+   - **Single modes (5 models each):** `mean`, `max`, `min`
+   - **Combined ensembles:** `combine_mean_max` (10 models), `combine_mean_max_min` (15 models), `combine_mean_min` (10 models)
 
-This is identical to the original PPLM-PPI inference protocol, ensuring a fair comparison.
+An on-the-fly backbone fallback (`--seq_db`) remains supported if pre-extracted test features are unavailable.
 
 ---
 
@@ -187,15 +188,15 @@ This is identical to the original PPLM-PPI inference protocol, ensuring a fair c
 | **scikit-learn** | (latest) |
 | **Conda environment** | `PPLM_NSCC_A100` (spec: `PPLM_NSCC_A100.yml`) |
 
-### 5.3 Execution Times (DeepAraPPI C1, 31,284 pairs)
+### 5.3 Execution Times (DeepAraPPI Suite, Train + Test Pre-Extraction)
 
 | Stage | Description | Wall Time |
 |-------|-------------|-----------|
-| **Stage 1** | Feature extraction (frozen backbone inference) | ~4–6 hours |
-| **Stage 2** | MLP training (10-fold CV × 2 pooling modes) | ~1–2 hours |
+| **Stage 1** | Feature extraction (frozen backbone on C1: 31.3k + C2: 66.1k + C3: 33.1k + Rice: 6.7k) | ~10–14 hours |
+| **Stage 2** | MLP training (10 folds × 3 pooling modes = 30 runs) | ~1.5–2.5 hours |
 | **Stage 3** | Model selection | <1 minute |
-| **Stage 4** | Test-set evaluation (C2: 66k + C3: 33k + Rice: 6.7k) | ~4–8 hours |
-| **Total** | End-to-end | ~10–16 hours |
+| **Stage 4** | Batched test-set evaluation (all 6 pooling combos via `DataLoader` `batch_size=512`) | <2 minutes |
+| **Total** | End-to-end | ~12–17 hours |
 
 ---
 
@@ -216,21 +217,21 @@ Training results and test-set evaluation are documented separately:
 
 | Script | Stage | Description |
 |--------|-------|-------------|
-| [`extract_features.py`](../../scripts/training/extract_features.py) | 1 | Frozen PPLM backbone → pooled feature `.pkl` files |
-| [`dataset.py`](../../scripts/training/dataset.py) | 2 | PyTorch Dataset for loading `.pkl` features with A↔B augmentation |
-| [`ppi_model.py`](../../scripts/training/ppi_model.py) | 2 | MLP classifier architecture + evaluation metrics |
-| [`train_ppi_head.py`](../../scripts/training/train_ppi_head.py) | 2 | K-fold stratified CV training loop |
-| [`select_top_models.py`](../../scripts/training/select_top_models.py) | 3 | Rank by AUPRC, package top-5 into ensemble |
-| [`test_ppi_head.py`](../../scripts/training/test_ppi_head.py) | 4 | Ensemble inference on held-out test sets |
-| [`evaluate_pplm.py`](../../scripts/benchmarking/evaluate_pplm.py) | 5 | Metrics computation + baseline comparison |
+| [`extract_features.py`](../../scripts/training/extract_features.py) | 1 | Frozen PPLM backbone → pooled feature `.pkl` files (train & test splits) |
+| [`dataset.py`](../../scripts/training/dataset.py) | 2, 4 | `Dataset_PPI_Interact` (all 15 feature keys, `order_mode`) + stratified CV split file generator |
+| [`ppi_model.py`](../../scripts/training/ppi_model.py) | 2, 4 | MLP classifier architecture + author 9-metric `evaluate()` & `evaluate_extended()` |
+| [`train_ppi_head.py`](../../scripts/training/train_ppi_head.py) | 2 | Per-fold CV training (`--cross_round 0..9`, `--seed_round 1`, `cudnn.enabled=False`) |
+| [`select_top_models.py`](../../scripts/training/select_top_models.py) | 3 | Rank by column-14 `AUC_PR`, generate `.top5_list` path files & `ppi_plant_models.pkl` |
+| [`test_ppi_head.py`](../../scripts/training/test_ppi_head.py) | 4 | Fast batched multi-model multi-pooling evaluation across all 6 pooling configs |
+| [`evaluate_pplm.py`](../../scripts/benchmarking/evaluate_pplm.py) | 5 | Metrics computation, baseline comparison, and multi-pooling ablation summary |
 
 ### 7.2 PBS Job Scripts
 
 | Script | Purpose |
 |--------|---------|
-| [`run_train_deeparappi_nscc.pbs`](../../scripts/hpc/run_train_deeparappi_nscc.pbs) | Full pipeline: Stages 1–5 on DeepAraPPI C1 |
-| [`run_train_esmarappi_nscc.pbs`](../../scripts/hpc/run_train_esmarappi_nscc.pbs) | Full pipeline: Stages 1–5 on ESMAraPPI C1 |
-| [`run_resume_deeparappi_nscc.pbs`](../../scripts/hpc/run_resume_deeparappi_nscc.pbs) | Resume from Stage 3 (model selection → evaluation) |
+| [`run_train_deeparappi_nscc.pbs`](../../scripts/training/hpc/run_train_deeparappi_nscc.pbs) | Full aligned pipeline: Stages 1–5 on DeepAraPPI (3 modes × 10 folds, 6 test combos) |
+| [`run_train_esmarappi_nscc.pbs`](../../scripts/training/hpc/run_train_esmarappi_nscc.pbs) | Full aligned pipeline: Stages 1–5 on ESMAraPPI (3 modes × 10 folds, 6 test combos) |
+| [`run_resume_deeparappi_nscc.pbs`](../../scripts/training/hpc/run_resume_deeparappi_nscc.pbs) | Resume from Stage 3 (model selection → batched multi-pooling testing → evaluation) |
 
 ---
 

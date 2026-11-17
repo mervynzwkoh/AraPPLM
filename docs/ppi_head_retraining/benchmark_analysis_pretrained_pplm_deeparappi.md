@@ -1,11 +1,14 @@
 # Technical Report: Plant-Pretrained PPLM-PPI on the DeepAraPPI Benchmark Suite
 
 **Author / Project:** AIS5281 - Plant Protein Language Modeling (`AraPPLM`)  
-**Date:** September 2026  
+**Date:** September 2026 (Updated November 2026 for Author-Aligned Protocol Rerun)  
 **Model Configuration:** PPLM backbone (frozen, 650M params) + MLP head retrained from random initialisation on DeepAraPPI C1  
 **Datasets:** DeepAraPPI *Arabidopsis thaliana* Partitions (C2, C3) & *Oryza sativa* (Rice Monocot Benchmark)  
 **Evaluation Standard:** Park & Marcotte (2012) Pair-Input Partition Scheme at 1:10 Positive-to-Negative Ratio  
 **Training Methodology:** See [`ppi_head_retraining_methodology.md`](ppi_head_retraining_methodology.md)  
+
+> [!IMPORTANT]
+> **Protocol Alignment & Rerun Status:** The empirical tables below document the initial 2-mode retraining run (`mean` + `max` pooling, `seed = 26240761`, 10-model ensemble). Following alignment of `scripts/training/` and `scripts/benchmarking/` with the original PPLM author's exact pipeline (`ppi_training_code/`: all 3 pooling modes `mean`/`max`/`min`, `--seed_round 1` = `73591024`, `cudnn.enabled = False`, pre-extracted test features, and 6 pooling combinations), the DeepAraPPI benchmark is queued for rerun on NSCC ASPIRE 2A (`qsub scripts/training/hpc/run_train_deeparappi_nscc.pbs`). See §5.3 for the pending multi-pooling ablation table.
 
 ---
 
@@ -187,6 +190,19 @@ The optimal threshold shifted from ~0.09 (zero-shot) to ~0.31–0.36 (plant-pret
 3. **Focal loss / class-weighted BCE ablation:** The current plain BCE loss may under-weight the minority positive class. Focal loss ($\gamma=2$) or class-weighted BCE ($w_{pos}=10$) could improve recall without sacrificing specificity.
 4. **LoRA backbone adaptation:** Apply Low-Rank Adaptation to the PPLM cross-attention layers to learn plant-specific interaction patterns within the backbone itself.
 5. **Joint/mixed strategy for Rice:** Train on a combination of Arabidopsis C1 + synthetic rice augmentation, or use an ensemble of zero-shot + plant-pretrained models for Rice tasks.
+
+### 5.3 Author-Aligned Multi-Pooling Rerun Table (Pending NSCC Execution)
+
+Once `qsub scripts/training/hpc/run_train_deeparappi_nscc.pbs` completes, `results/DeepAraPPI/pretrained/pooling_ablation_summary.csv` will populate the 6 pooling configurations from `ppi_training_code/run_testing.sh` (`--seed_round 1`, `seed = 73591024`, `cudnn.enabled = False`):
+
+| Pooling Configuration | Models in Ensemble | Task 2 (C2) AUPRC | Task 3 (C3) AUPRC | Task 4 (Rice) AUPRC |
+| :--- | :--- | :--- | :--- | :--- |
+| `mean` (top-5) | 5 (`mean`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
+| `max` (top-5) | 5 (`max`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
+| `min` (top-5) | 5 (`min`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
+| `combine_mean_max` | 10 (`mean` + `max`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
+| `combine_mean_max_min` | 15 (`mean` + `max` + `min`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
+| `combine_mean_min` | 10 (`mean` + `min`) | *Pending NSCC rerun* | *Pending NSCC rerun* | *Pending NSCC rerun* |
 
 ---
 

@@ -90,11 +90,11 @@ class PPI_inter_intra_attn_embed_single_pooling(nn.Module):
 
 def evaluate(GT, Pre, thresh=0.5):
     """
-    Compute comprehensive evaluation metrics for PPI prediction.
+    Compute evaluation metrics matching the original PPLM-PPI training code
+    (ppi_training_code/PPI_model.py).
 
     Returns:
-        precision, recall, accuracy, F1_score, specificity, MCC,
-        Top10, Top20, Top50, AUC_ROC, AUC_PR
+        precision, recall, accuracy, F1_score, Top10, Top20, Top50, AUC_ROC, AUC_PR
     """
     GT = np.array(GT)
     Pre = np.array(Pre)
@@ -107,7 +107,10 @@ def evaluate(GT, Pre, thresh=0.5):
     Top50 = np.sum(GT_sorted[:50]) / 50
 
     # Threshold-free metrics
-    AUC_ROC = roc_auc_score(GT, Pre)
+    try:
+        AUC_ROC = roc_auc_score(GT, Pre)
+    except ValueError:
+        AUC_ROC = 0.0
     precision_list, recall_list, _ = precision_recall_curve(GT, Pre)
     AUC_PR = auc(recall_list, precision_list)
 
@@ -116,11 +119,41 @@ def evaluate(GT, Pre, thresh=0.5):
     accuracy = accuracy_score(GT, Pre_binary)
     recall = recall_score(GT, Pre_binary, zero_division=0)
     precision = precision_score(GT, Pre_binary, zero_division=0)
-    F1 = f1_score(GT, Pre_binary, average="binary", zero_division=0)
-    MCC = matthews_corrcoef(GT, Pre_binary)
+    F1_score = f1_score(GT, Pre_binary, average="binary", zero_division=0)
 
-    # Specificity (True Negative Rate)
-    tn, fp, fn, tp = confusion_matrix(GT, Pre_binary, labels=[0, 1]).ravel()
+    return precision, recall, accuracy, F1_score, Top10, Top20, Top50, AUC_ROC, AUC_PR
+
+
+def evaluate_extended(GT, Pre, thresh=0.5):
+    """
+    Compute comprehensive evaluation metrics including specificity and MCC.
+
+    Returns:
+        precision, recall, accuracy, F1_score, specificity, MCC,
+        Top10, Top20, Top50, AUC_ROC, AUC_PR
+    """
+    GT_arr = np.array(GT)
+    Pre_arr = np.array(Pre)
+
+    precision, recall, accuracy, F1_score, Top10, Top20, Top50, AUC_ROC, AUC_PR = evaluate(
+        GT_arr, Pre_arr, thresh=thresh
+    )
+
+    Pre_binary = [1 if item > thresh else 0 for item in Pre_arr]
+    MCC = matthews_corrcoef(GT_arr, Pre_binary)
+    tn, fp, fn, tp = confusion_matrix(GT_arr, Pre_binary, labels=[0, 1]).ravel()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
 
-    return precision, recall, accuracy, F1, specificity, MCC, Top10, Top20, Top50, AUC_ROC, AUC_PR
+    return (
+        precision,
+        recall,
+        accuracy,
+        F1_score,
+        specificity,
+        MCC,
+        Top10,
+        Top20,
+        Top50,
+        AUC_ROC,
+        AUC_PR,
+    )

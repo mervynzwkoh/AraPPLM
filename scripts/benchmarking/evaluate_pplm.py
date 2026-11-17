@@ -1,41 +1,54 @@
 #!/usr/bin/env python3
 """
-Evaluate PPLM Predictions against DeepAraPPI Benchmarks
+Evaluate PPLM Predictions against DeepAraPPI & ESMAraPPI Benchmarks.
 
-Computes primary metrics matching DeepAraPPI (AUPRC, AUROC, Precision, Recall, F1, MCC, Specificity)
-and outputs a comparison against the DeepAraPPI paper baselines (RCNN, Domain2vec, GO2vec, DeepAraPPI).
+Computes primary metrics matching DeepAraPPI/ESMAraPPI and PPLM's PPI_model.py
+(AUPRC, AUC_PR via precision-recall curve trapezoidal auc, AUROC, Precision,
+Recall, F1, MCC, Specificity, Top10/20/50), and supports summarizing the
+6 pooling combinations (mean, max, min, combine_mean_max, combine_mean_max_min,
+combine_mean_min).
 
 Usage:
-    # Evaluate a single task:
-    python scripts/evaluate_pplm.py \
-        --input results/deepara_c2_scores.csv \
-        --task Task2 \
-        --output_dir results/
+    # Evaluate multiple DeepAraPPI task predictions at once:
+    python scripts/benchmarking/evaluate_pplm.py \
+        --c2 results/DeepAraPPI/pretrained/deepara_c2_combine_mean_max_min_scores.csv \
+        --c3 results/DeepAraPPI/pretrained/deepara_c3_combine_mean_max_min_scores.csv \
+        --rice results/DeepAraPPI/pretrained/deepara_rice_combine_mean_max_min_scores.csv \
+        --output_dir results/DeepAraPPI/pretrained/
 
-    # Evaluate multiple task predictions at once:
-    python scripts/evaluate_pplm.py \
-        --c1 results/deepara_c1_scores.csv \
-        --c2 results/deepara_c2_scores.csv \
-        --c3 results/deepara_c3_scores.csv \
-        --rice results/deepara_rice_scores.csv \
-        --output_dir results/
+    # Or summarize all 6 pooling combinations in a directory:
+    python scripts/benchmarking/evaluate_pplm.py \
+        --pooling_ablation_dir results/DeepAraPPI/pretrained/ \
+        --suite DeepAraPPI \
+        --output_dir results/DeepAraPPI/pretrained/
 """
 
+import argparse
 import os
 import sys
-import argparse
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (
+    accuracy_score,
+    auc,
     average_precision_score,
-    roc_auc_score,
-    precision_recall_curve,
-    roc_curve,
     confusion_matrix,
     f1_score,
     matthews_corrcoef,
-    accuracy_score
+    precision_recall_curve,
+    roc_auc_score,
 )
+
+
+POOLING_COMBOS = [
+    "mean",
+    "max",
+    "min",
+    "combine_mean_max",
+    "combine_mean_max_min",
+    "combine_mean_min",
+]
 
 # Reference benchmark baselines from DeepAraPPI (Zheng et al., 2023)
 DEEPARAPPI_BASELINES = {
@@ -91,40 +104,54 @@ ESMARAPPI_BASELINES = {
     },
 }
 
+
 def compute_metrics(y_true, y_score, threshold=0.5):
-    """Compute comprehensive classification and ranking metrics."""
+    """Compute comprehensive classification, Top-K, and ranking metrics."""
+    y_true = np.asarray(y_true, dtype=int)
+    y_score = np.asarray(y_score, dtype=float)
+
+    # Top-K precision (matching PPI_model.py::evaluate)
+    idx_list = np.argsort(-y_score)
+    gt_sorted = y_true[idx_list]
+    top10 = float(np.sum(gt_sorted[:10]) / min(10, len(gt_sorted))) if len(gt_sorted) else 0.0
+    top20 = float(np.sum(gt_sorted[:20]) / min(20, len(gt_sorted))) if len(gt_sorted) else 0.0
+    top50 = float(np.sum(gt_sorted[:50]) / min(50, len(gt_sorted))) if len(gt_sorted) else 0.0
+
     # Ranking metrics (Threshold-independent)
-    auprc = average_precision_score(y_true, y_score)
+    auprc = float(average_precision_score(y_true, y_score))
+    precision_arr, recall_arr, thresh_arr = precision_recall_curve(y_true, y_score)
+    auc_pr_trapz = float(auc(recall_arr, precision_arr))
+
     try:
-        auroc = roc_auc_score(y_true, y_score)
+        auroc = float(roc_auc_score(y_true, y_score))
     except ValueError:
         auroc = float("nan")
 
-    # Threshold-dependent metrics
-    y_pred = (y_score >= threshold).astype(int)
+    # Threshold-dependent metrics (matching > thresh in PPI_model.py)
+    y_pred = (y_score > threshold).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
-    accuracy = accuracy_score(y_true, y_pred)
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0.0  # Recall
-    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-    f1 = f1_score(y_true, y_pred, zero_division=0)
-    mcc = matthews_corrcoef(y_true, y_pred)
+    accuracy = float(accuracy_score(y_true, y_pred))
+    precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+    sensitivity = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+    specificity = float(tn / (tn + fp)) if (tn + fp) > 0 else 0.0
+    f1 = float(f1_score(y_true, y_pred, zero_division=0))
+    mcc = float(matthews_corrcoef(y_true, y_pred))
 
-    # Find optimal threshold that maximizes F1 score
-    precision_arr, recall_arr, thresh_arr = precision_recall_curve(y_true, y_score)
+    # Optimal threshold maximizing F1 score
     f1_scores = np.divide(
         2 * (precision_arr * recall_arr),
         (precision_arr + recall_arr),
         out=np.zeros_like(precision_arr),
         where=(precision_arr + recall_arr) != 0,
     )
-    best_idx = np.argmax(f1_scores)
-    best_f1 = f1_scores[best_idx]
-    best_thresh = thresh_arr[best_idx] if best_idx < len(thresh_arr) else 0.5
+    best_idx = int(np.argmax(f1_scores))
+    best_f1 = float(f1_scores[best_idx])
+    best_thresh = float(thresh_arr[best_idx]) if best_idx < len(thresh_arr) else 0.5
 
     return {
         "AUPRC": auprc,
+        "AUC_PR_Trapz": auc_pr_trapz,
         "AUROC": auroc,
         "Accuracy": accuracy,
         "Precision": precision,
@@ -132,6 +159,9 @@ def compute_metrics(y_true, y_score, threshold=0.5):
         "Specificity": specificity,
         "F1_Score": f1,
         "MCC": mcc,
+        "Top10": top10,
+        "Top20": top20,
+        "Top50": top50,
         "Best_Threshold": best_thresh,
         "Best_F1": best_f1,
         "Total_Samples": len(y_true),
@@ -139,27 +169,6 @@ def compute_metrics(y_true, y_score, threshold=0.5):
         "Negative_Samples": int(len(y_true) - np.sum(y_true)),
     }
 
-def print_task_evaluation(task_name, metrics, baseline_dict=None):
-    """Print formatted evaluation report."""
-    print("=" * 70)
-    print(f"EVALUATION REPORT: {task_name.upper()}")
-    if baseline_dict and task_name in baseline_dict:
-        print(f"Description: {baseline_dict[task_name].get('Description', '')}")
-    print("=" * 70)
-
-    print(f"Dataset Size:     {metrics['Total_Samples']:,} pairs "
-          f"({metrics['Positive_Samples']:,} positive, {metrics['Negative_Samples']:,} negative | "
-          f"Ratio 1:{metrics['Negative_Samples']/max(1, metrics['Positive_Samples']):.1f})")
-    print("-" * 70)
-    print(f"  [*] AUPRC (Primary Metric):   {metrics['AUPRC']:.4f}")
-    print(f"  [*] AUROC:                    {metrics['AUROC']:.4f}")
-    print(f"  F1 Score (thresh=0.5):      {metrics['F1_Score']:.4f}")
-    print(f"  Precision:                  {metrics['Precision']:.4f}")
-    print(f"  Sensitivity (Recall):       {metrics['Sensitivity_Recall']:.4f}")
-    print(f"  Specificity:                {metrics['Specificity']:.4f}")
-    print(f"  MCC:                        {metrics['MCC']:.4f}")
-    print(f"  Accuracy:                   {metrics['Accuracy']:.4f}")
-    print(f"  Optimal F1:                 {metrics['Best_F1']:.4f} (at threshold {metrics['Best_Threshold']:.4f})")
 
 def print_task_evaluation(task_name, metrics, baseline_dict=None):
     """Print formatted evaluation report."""
@@ -169,21 +178,30 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
         print(f"Description: {baseline_dict[task_name].get('Description', '')}")
     print("=" * 70)
 
-    print(f"Dataset Size:     {metrics['Total_Samples']:,} pairs "
-          f"({metrics['Positive_Samples']:,} positive, {metrics['Negative_Samples']:,} negative | "
-          f"Ratio 1:{metrics['Negative_Samples']/max(1, metrics['Positive_Samples']):.1f})")
+    print(
+        f"Dataset Size:     {metrics['Total_Samples']:,} pairs "
+        f"({metrics['Positive_Samples']:,} positive, {metrics['Negative_Samples']:,} negative | "
+        f"Ratio 1:{metrics['Negative_Samples'] / max(1, metrics['Positive_Samples']):.1f})"
+    )
     print("-" * 70)
-    print(f"  [*] AUPRC (Primary Metric):   {metrics['AUPRC']:.4f}")
-    print(f"  [*] AUROC:                    {metrics['AUROC']:.4f}")
+    print(f"  [*] AUPRC (Avg Precision):  {metrics['AUPRC']:.4f}")
+    print(f"  [*] AUC_PR (PR-Curve AUC):  {metrics['AUC_PR_Trapz']:.4f}")
+    print(f"  [*] AUROC:                  {metrics['AUROC']:.4f}")
     print(f"  F1 Score (thresh=0.5):      {metrics['F1_Score']:.4f}")
     print(f"  Precision:                  {metrics['Precision']:.4f}")
     print(f"  Sensitivity (Recall):       {metrics['Sensitivity_Recall']:.4f}")
     print(f"  Specificity:                {metrics['Specificity']:.4f}")
     print(f"  MCC:                        {metrics['MCC']:.4f}")
     print(f"  Accuracy:                   {metrics['Accuracy']:.4f}")
-    print(f"  Optimal F1:                 {metrics['Best_F1']:.4f} (at threshold {metrics['Best_Threshold']:.4f})")
+    print(
+        f"  Top-10 / Top-20 / Top-50:   "
+        f"{metrics['Top10']:.4f} / {metrics['Top20']:.4f} / {metrics['Top50']:.4f}"
+    )
+    print(
+        f"  Optimal F1:                 {metrics['Best_F1']:.4f} "
+        f"(at threshold {metrics['Best_Threshold']:.4f})"
+    )
 
-    # Comparison against baselines
     if baseline_dict and task_name in baseline_dict:
         b = baseline_dict[task_name]
         print("-" * 70)
@@ -196,32 +214,39 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
 
         primary_comp = "ESMAraPPI" if "ESMAraPPI" in b else "DeepAraPPI"
         if primary_comp in b:
-            delta = metrics['AUPRC'] - b[primary_comp]
+            delta = metrics["AUPRC"] - b[primary_comp]
             sign = "+" if delta >= 0 else ""
             print(f"  PPLM vs {primary_comp}:         {sign}{delta:.4f}")
     print("=" * 70 + "\n")
 
-def evaluate_file(csv_path, task_name="Task", output_dir=None):
+
+def load_predictions_csv(csv_path):
+    """Load prediction CSV supporting both (pred_score, true_label) and (prediction, label)."""
+    df = pd.read_csv(csv_path)
+    if "pred_score" in df.columns and "true_label" in df.columns:
+        return df["true_label"].values, df["pred_score"].values
+    if "prediction" in df.columns and "label" in df.columns:
+        return df["label"].values, df["prediction"].values
+    raise ValueError(
+        f"CSV {csv_path} must contain ('pred_score', 'true_label') or ('prediction', 'label') columns."
+    )
+
+
+def evaluate_file(csv_path, task_name="Task", output_dir=None, summary_filename=None):
     """Load predictions CSV and compute metrics."""
     if not os.path.exists(csv_path):
         print(f"[!] Error: File not found: {csv_path}")
         return None
 
-    df = pd.read_csv(csv_path)
-    if "pred_score" not in df.columns or "true_label" not in df.columns:
-        print(f"[!] Error: CSV must contain 'pred_score' and 'true_label' columns.")
-        return None
-
-    y_true = df["true_label"].values
-    y_score = df["pred_score"].values
-
+    y_true, y_score = load_predictions_csv(csv_path)
     metrics = compute_metrics(y_true, y_score)
     all_baselines = {**DEEPARAPPI_BASELINES, **ESMARAPPI_BASELINES}
     print_task_evaluation(task_name, metrics, all_baselines)
 
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-        out_summary_path = os.path.join(output_dir, f"{task_name.lower()}_metrics.txt")
+        out_name = summary_filename or f"{task_name.lower()}_metrics.txt"
+        out_summary_path = os.path.join(output_dir, out_name)
         with open(out_summary_path, "w") as f:
             f.write(f"Task: {task_name}\n")
             for k, v in metrics.items():
@@ -230,24 +255,87 @@ def evaluate_file(csv_path, task_name="Task", output_dir=None):
 
     return metrics
 
+
+def run_pooling_ablation_summary(ablation_dir, suite, output_dir):
+    """Discover and summarize all 6 pooling combinations across tasks."""
+    if suite == "DeepAraPPI":
+        task_specs = [
+            ("c2", "Task2", "deepara"),
+            ("c3", "Task3", "deepara"),
+            ("rice", "Task4_Rice", "deepara"),
+        ]
+    else:
+        task_specs = [
+            ("c2", "ESM_C2", "esmarappi"),
+            ("c3", "ESM_C3", "esmarappi"),
+        ]
+
+    ablation_rows = []
+    for pooling in POOLING_COMBOS:
+        for split_tag, task_key, prefix in task_specs:
+            csv_path = os.path.join(ablation_dir, f"{prefix}_{split_tag}_{pooling}_scores.csv")
+            if not os.path.exists(csv_path):
+                continue
+            y_true, y_score = load_predictions_csv(csv_path)
+            m = compute_metrics(y_true, y_score)
+            ablation_rows.append({"Pooling": pooling, "Task": task_key, **m})
+
+    if not ablation_rows:
+        print(f"[!] No pooling ablation CSVs found in {ablation_dir}")
+        return
+
+    df_ablation = pd.DataFrame(ablation_rows)
+    os.makedirs(output_dir, exist_ok=True)
+    ablation_csv = os.path.join(output_dir, "pooling_ablation_summary.csv")
+    df_ablation.to_csv(ablation_csv, index=False)
+
+    print("\n" + "=" * 80)
+    print(f"MULTI-POOLING ABLATION SUMMARY ({suite})")
+    print("=" * 80)
+    cols = ["Pooling", "Task", "AUPRC", "AUC_PR_Trapz", "AUROC", "F1_Score", "MCC"]
+    print(df_ablation[cols].to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+    print(f"\n[INFO] Pooling ablation summary saved to: {ablation_csv}")
+    print("=" * 80 + "\n")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate PPLM on Plant PPI Benchmarks (DeepAraPPI / ESMAraPPI)")
-    # Single file evaluation
+    parser = argparse.ArgumentParser(
+        description="Evaluate PPLM on Plant PPI Benchmarks (DeepAraPPI / ESMAraPPI)"
+    )
     parser.add_argument("--input", help="Single prediction CSV file")
-    parser.add_argument("--task", default="Task", choices=["Task1", "Task2", "Task3", "Task4_Rice", "ESM_C2", "ESM_C3", "Custom"], help="Task name for benchmark lookup")
-    
+    parser.add_argument(
+        "--task",
+        default="Task",
+        choices=["Task1", "Task2", "Task3", "Task4_Rice", "ESM_C2", "ESM_C3", "Custom"],
+        help="Task name for benchmark lookup",
+    )
+
     # DeepAraPPI multi-file evaluation
     parser.add_argument("--c1", help="Path to DeepAraPPI C1 test prediction CSV")
     parser.add_argument("--c2", help="Path to DeepAraPPI C2 test prediction CSV")
     parser.add_argument("--c3", help="Path to DeepAraPPI C3 test prediction CSV")
     parser.add_argument("--rice", help="Path to DeepAraPPI Rice test prediction CSV")
-    
+
     # ESMAraPPI multi-file evaluation
     parser.add_argument("--esm_c2", help="Path to ESMAraPPI C2 prediction CSV")
     parser.add_argument("--esm_c3", help="Path to ESMAraPPI C3 prediction CSV")
-    
-    parser.add_argument("--output_dir", default="results", help="Directory to save metric summary reports")
 
+    # Multi-pooling ablation summary
+    parser.add_argument(
+        "--pooling_ablation_dir",
+        default=None,
+        help="Directory containing {prefix}_{split}_{pooling}_scores.csv files across 6 pooling configs",
+    )
+    parser.add_argument(
+        "--suite",
+        default="DeepAraPPI",
+        choices=["DeepAraPPI", "ESMAraPPI"],
+        help="Benchmark suite for --pooling_ablation_dir",
+    )
+
+    parser.add_argument(
+        "--output_dir", default="results", help="Directory to save metric summary reports"
+    )
     args = parser.parse_args()
 
     results_table = []
@@ -294,6 +382,12 @@ def main():
         summary_csv = os.path.join(args.output_dir, "benchmark_summary.csv")
         df_summary.to_csv(summary_csv, index=False)
         print(f"\n[INFO] Consolidated Benchmark Summary saved to: {summary_csv}")
+
+    if args.pooling_ablation_dir:
+        run_pooling_ablation_summary(
+            args.pooling_ablation_dir, suite=args.suite, output_dir=args.output_dir
+        )
+
 
 if __name__ == "__main__":
     main()

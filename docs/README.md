@@ -68,7 +68,7 @@ Covers the technical pipeline used to achieve **100.00% sequence coverage** acro
 ## 3. PPI Head Retraining & Benchmarking (`docs/ppi_head_retraining/` & `docs/zero_shot_benchmarking/`)
 
 Comprehensive technical walkthroughs and experimental analyses:
-- **Head Architecture**: 2-layer MLP classifier on top of pooled paired language model embeddings.
+- **Head Architecture**: 5-layer MLP classifier (`3300→1024→512→256→128→1`) with LayerNorm, ReLU, and Sigmoid on top of pooled attention & embedding representations (`mean`, `max`, `min`).
 - **Cross-Validation**: Performance evaluations on DeepAraPPI Tasks (C1, C2, C3, and Rice transfer) and ESMAraPPI Tasks (C2, C3).
 - **Zero-Shot Baselines**: Establishing the performance boundaries of base PPLM before plant-specific fine-tuning.
 
