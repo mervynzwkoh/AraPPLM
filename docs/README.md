@@ -27,6 +27,7 @@ docs/
 ├── ppi_head_retraining/                   # Retraining the classification head on plant benchmarks
 │   ├── ppi_head_retraining_methodology.md # Architecture, cross-entropy training, hyperparameter choices
 │   ├── ppi_head_retraining_walkthrough.md # Step-by-step reproduction and training procedure
+│   ├── benchmark_analysis_araplm_dataset.md # Curated AraPPLM (C1-C4) zero-shot & retrained benchmark report
 │   ├── benchmark_analysis_pretrained_pplm_deeparappi.md # DeepAraPPI benchmark head retraining evaluation
 │   └── benchmark_analysis_pretrained_pplm_esmarappi.md  # ESMAraPPI benchmark head retraining evaluation
 │

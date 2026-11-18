@@ -33,7 +33,8 @@ flowchart TD
 | **Phase 2: Positive Blacklist** | Exclude pairs appearing in BioGRID, IntAct, STRING, XL-MS, DeepAraPPI, ESMAraPPI | 409,222,436 | 1,607,025 | 407,615,411 | 99.61% |
 | **Phase 3: Subcellular Filter** | Require confident annotations and strictly disjoint TAIR compartments (`mask_A & mask_B == 0`) | 407,615,411 | 305,731,081 | **101,884,330** | 24.90% |
 | **Phase 4: Positive Interolog Purge** | Remove pairs with $S(P_{\text{neg}}, P_{\text{pos}}) \ge 0.50$ ($c_{\min} \ge 0.80$) against verified positives | 101,884,330 | 32,788 | **101,851,542** | 99.97% |
-| **Phase 5: Redundancy Reduction** | Greedy CD-HIT clustering ($\theta=0.50, c_{\min}=0.80$) across candidate negatives | 101,851,542 | *HPC Job Queued* | *Final NR Pool* | *Pending* |
+| **Phase 5: Redundancy Reduction** | Greedy CD-HIT clustering ($\theta=0.50, c_{\min}=0.80$) across candidate negatives | 101,851,542 | 51,542,812 | **50,308,730** | 49.39% |
+| **Phase 6: Benchmark Partitioning** | Graph-theoretic stratified sampling into C1/C2/C3/C4 splits (1:10 target ratio) | 50,308,730 | — | **228,485** | Sampled (1:9.98) |
 
 ---
 
@@ -107,7 +108,7 @@ For any candidate pair $(A, B)$ with bitmasks $\text{mask}_A$ and $\text{mask}_B
    Any pair sharing even one compartment (e.g. both present in cytosol) was rejected.
 
 ### 4.3 High-Performance 2D Vectorized Block Streamer
-Evaluating $4.09 \times 10^8$ combinations was executed on the HPC via [`02_generate_candidate_negatives_hpc.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/dataset_construction/02_generate_candidate_negatives_hpc.py) using 2D block matrix evaluation (block size 2,000 $\times$ 2,000):
+Evaluating $4.09 \times 10^8$ combinations was executed on the HPC via [`02_generate_candidate_negatives_hpc.py`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/scripts/dataset_construction/02_negative_sampling/02_generate_candidate_negatives_hpc.py) using 2D block matrix evaluation (block size 2,000 $\times$ 2,000):
 - Runtime: **432.7 seconds** on NSCC ASPIRE 2A.
 - Total surviving candidate negative pairs: **101,884,330 pairs** streamed into 102 Parquet chunks (1,000,000 pairs per chunk).
 
@@ -192,7 +193,31 @@ All 50,308,730 pairs in the final pool strictly satisfy $\\forall P_i, P_j \\in 
 
 ---
 
-## 7. Scripts & HPC Execution Guide
+## 7. Phase 6: C1/C2/C3/C4 Negative Benchmark Partitioning (1:10 Ratio)
+
+The final non-redundant negative candidate pool ($\mathcal{P}_{\text{neg, NR}}$, 50,308,730 pairs) was partitioned into **C1 (Train, 85%)**, **C2 (One Unseen Test, 5%)**, **C3 (Both Unseen Test, 5%)**, and **C4 (Both Seen Test, 5%)** benchmark splits following the exact vertex membership rules established during positive graph bisection.
+
+### 7.1 Mathematical Partition Rules
+- **C1 Negatives (Train, 194,620 pairs, 1:10.00)**: $u, v \in V(C_1) \subseteq V_{\text{train}}$ (Both interactors seen in training).
+- **C2 Negatives (One Unseen Test, 11,450 pairs, 1:10.00)**: $u \in V_{\text{train}}, v \in V_{\text{test}}$ (One seen in train, one unseen).
+- **C3 Negatives (Both Unseen Test, 10,965 pairs, 1:9.58)**: $u, v \in V_{\text{test}}$ ($V(C_{3, \text{neg}}) \cap V(C_1) = \emptyset$, strict zero homology leakage). Capped at the 10,965 theoretical maximum non-redundant pairs in $V_{\text{test}}$.
+- **C4 Negatives (Both Seen Test, 11,450 pairs, 1:10.00)**: $u, v \in V(C_1)$ (Both interactors seen in C1; novel test interaction pair, edge-disjoint from C1).
+
+### 7.2 Benchmark Partition Audit Dashboard
+
+| Partition | Role | Positive Pairs | Negative Pairs (10x) | Combined Total | Pos:Neg Ratio | Unique Neg Proteins | Vertex Membership Rule |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---|
+| **C1** | **Training Set** | **19,462** | **194,620** | **214,082** | **1 : 10.00** | **2,324** | $u, v \in V(C_1) \subseteq V_{\text{train}}$ |
+| **C2** | **One Unseen Test** | **1,145** | **11,450** | **12,595** | **1 : 10.00** | **1,353** | $u \in V_{\text{train}}, v \in V_{\text{test}}$ |
+| **C3** | **Both Unseen Test** | **1,145** | **10,965** | **12,110** | **1 : 9.58 (capped)** | **235** | $u, v \in V_{\text{test}}$ ($V(C_3) \cap V(C_1) = \emptyset$) |
+| **C4** | **Both Seen Test** | **1,145** | **11,450** | **12,595** | **1 : 10.00** | **2,061** | $u, v \in V(C_1)$ (Novel pairs among seen proteins) |
+| **Total** | **Full Benchmark** | **22,897** | **228,485** | **251,382** | **1 : 9.98** | **2,581** | Strict graph-theoretic partition |
+
+All 11 strict verification criteria (edge disjointness, vertex bisection, containment, zero leakage) passed with 0 violations.
+
+---
+
+## 8. Scripts & HPC Execution Guide
 
 All steps are self-contained and pre-configured for NSCC ASPIRE 2A:
 
@@ -202,32 +227,44 @@ cd ~/AraPPLM
 git pull origin main
 
 # Step 1: Submit Negative Homology Filtering (Phase 4)
-qsub scripts/dataset_construction/submit_filter_negative_interologs_hpc.pbs
+qsub scripts/dataset_construction/02_negative_sampling/submit_filter_negative_interologs_hpc.pbs
 
 # Step 2: Submit Negative Redundancy Reduction (Phase 5)
-qsub scripts/dataset_construction/submit_cluster_candidate_negatives_hpc.pbs
+qsub scripts/dataset_construction/02_negative_sampling/submit_cluster_candidate_negatives_hpc.pbs
+
+# Step 3: Submit Negative C1/C2/C3/C4 Partitioning (Phase 6)
+qsub scripts/dataset_construction/04_benchmark_splits/submit_partition_negative_hpc.pbs
 
 # Monitor job progress
 qstat -u $USER
-tail -f logs_cluster_candidate_negatives.log
+tail -f logs_partition_negative.log
 ```
 
 ---
 
-## 8. Summary Output Structure
+## 9. Summary Output Structure
 
-All outputs are organized in `data/dataset_construction/02_negative_sampling/`:
+All outputs are organized in `data/dataset_construction/`:
 
 ```
-data/dataset_construction/02_negative_sampling/
-├── ara_all_databases_positive_blacklist.parquet    # Master positive blacklist (Phase 2)
-├── candidates/                                     # Raw disjoint candidates (Phase 3, 101.88M pairs)
-│   └── ara_candidate_negatives_chunk_*.parquet
-├── filtered_candidates/                            # Interolog-filtered clean pairs (Phase 4, 101.85M pairs)
-│   └── ara_candidate_negatives_filtered_chunk_*.parquet
-├── final_candidates_nr/                            # Final non-redundant negative candidate pool (Phase 5)
-│   └── ara_candidate_negatives_nr_chunk_*.parquet
-├── ara_canonical_plus_positives_alignments.tsv     # Full proteome MMseqs2 pairwise alignments
-├── summary_candidate_negatives_filtered.md         # Phase 4 audit report
-└── summary_candidate_negatives_nr.md               # Phase 5 audit report (generated upon completion)
+data/dataset_construction/
+├── 02_negative_sampling/
+│   ├── ara_all_databases_positive_blacklist.parquet    # Master positive blacklist (Phase 2)
+│   ├── candidates/                                     # Raw disjoint candidates (Phase 3, 101.88M pairs)
+│   │   └── ara_candidate_negatives_chunk_*.parquet
+│   ├── filtered_candidates/                            # Interolog-filtered clean pairs (Phase 4, 101.85M pairs)
+│   │   └── ara_candidate_negatives_filtered_chunk_*.parquet
+│   ├── final_candidates_nr/                            # Final non-redundant negative candidate pool (Phase 5, 50.31M pairs)
+│   │   └── ara_candidate_negatives_nr_chunk_*.parquet
+│   ├── ara_canonical_plus_positives_alignments.tsv     # Full proteome MMseqs2 pairwise alignments
+│   ├── summary_candidate_negatives_filtered.md         # Phase 4 audit report
+│   └── summary_candidate_negatives_nr.md               # Phase 5 audit report
+│
+└── 04_benchmark_splits/arabidopsis/
+    ├── ara_negative_c1_train_id0_50_cov0_80.tsv        # C1 negative train split (194,620 pairs)
+    ├── ara_negative_c2_test_id0_50_cov0_80.tsv         # C2 negative test split (11,450 pairs)
+    ├── ara_negative_c3_test_id0_50_cov0_80.tsv         # C3 negative test split (10,965 pairs)
+    ├── ara_negative_c4_test_id0_50_cov0_80.tsv         # C4 negative test split (11,450 pairs)
+    ├── ara_benchmark_c*.tsv                            # Combined positive + negative benchmark TSVs
+    └── summary_negative_c1234_partitions.md            # Phase 6 audit report
 ```

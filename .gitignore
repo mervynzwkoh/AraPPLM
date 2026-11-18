@@ -18,6 +18,8 @@ ENV/
 data/raw/
 data/arabidopsis/uniprot_arabidopsis.fasta
 data/arabidopsis/uniprot_arabidopsis_stream.tsv.gz
+data/legacy_benchmarks/arabidopsis_missing/uniprot_arabidopsis_stream.tsv.gz
+data/**/uniprot_arabidopsis_stream.tsv.gz
 data/arabidopsis/*.pkl
 data/rice/uniprot_rice.fasta
 !data/rice/missing_rice.fasta

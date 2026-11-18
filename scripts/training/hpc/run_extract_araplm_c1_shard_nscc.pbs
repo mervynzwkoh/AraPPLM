@@ -1,0 +1,66 @@
+#!/bin/bash
+# ==============================================================================
+# PBS Job Script: Sharded PPLM Feature Extraction for Newly Curated AraPPLM C1
+# NSCC ASPIRE 2A (NVIDIA A100 40GB)
+#
+# C1 contains 214,082 pairs (~30-40 hours on 1 A100 GPU, exceeding 24h walltime).
+# Split C1 extraction across 2 (or more) parallel shard jobs:
+#
+#   qsub -v NUM_SHARDS=2,SHARD_ID=0 -o pplm_extract_araplm_c1_s0.log scripts/training/hpc/run_extract_araplm_c1_shard_nscc.pbs
+#   qsub -v NUM_SHARDS=2,SHARD_ID=1 -o pplm_extract_araplm_c1_s1.log scripts/training/hpc/run_extract_araplm_c1_shard_nscc.pbs
+#
+# Each shard writes to the shared features/AraPPLM_C1/ directory with --resume.
+# ==============================================================================
+#PBS -N pplm_extract_araplm_c1
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64GB
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o pplm_extract_araplm_c1.log
+
+if [ -d "$PBS_O_WORKDIR/scripts" ]; then
+    cd "$PBS_O_WORKDIR"
+elif [ -d "$HOME/AraPPLM/scripts" ]; then
+    cd "$HOME/AraPPLM"
+elif [ -d "$HOME/AIS5281-Plant-PPLM/scripts" ]; then
+    cd "$HOME/AIS5281-Plant-PPLM"
+fi
+
+NUM_SHARDS="${NUM_SHARDS:-2}"
+SHARD_ID="${SHARD_ID:-0}"
+
+echo "=== AraPPLM C1 Feature Extraction (Shard ${SHARD_ID}/${NUM_SHARDS}) started on $(hostname) at $(date) ==="
+echo "Working directory: $(pwd)"
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+nvidia-smi
+
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+fi
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+conda activate PPLM_NSCC_A100
+
+echo "Python binary: $(which python)"
+python -c "import torch; print('CUDA available:', torch.cuda.is_available(), '| GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+
+C1_DATASET="data/dataset_construction/04_benchmark_splits/arabidopsis/benchmark_data/ara_benchmark_c1_train_id0_50_cov0_80.tsv"
+SEQ_DB="${SEQ_DB:-data/arabidopsis/uniprot_final.pkl}"
+FEAT_DIR_C1="features/AraPPLM_C1"
+
+mkdir -p "$FEAT_DIR_C1"
+
+python -u scripts/training/extract_features.py \
+    --input "$C1_DATASET" \
+    --output_dir "$FEAT_DIR_C1" \
+    --seq_db "$SEQ_DB" \
+    --gpu_id 0 \
+    --num_shards "$NUM_SHARDS" \
+    --shard_id "$SHARD_ID" \
+    --resume
+
+echo "=== Shard ${SHARD_ID}/${NUM_SHARDS} Complete at $(date) ==="
+echo "Total .pkl files in $FEAT_DIR_C1: $(ls -1 $FEAT_DIR_C1/*.pkl 2>/dev/null | wc -l)"

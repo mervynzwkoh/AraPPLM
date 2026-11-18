@@ -36,10 +36,10 @@ sys.path.insert(0, REPO_ROOT)
 
 import importlib.util
 
-spec = importlib.util.spec_from_file_location(
-    "partition_mod",
-    os.path.join(REPO_ROOT, "scripts", "dataset_construction", "05_partition_negative_c1234_hpc.py")
-)
+target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "04_benchmark_splits", "05_partition_negative_c1234_hpc.py")
+if not os.path.exists(target_script):
+    target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "05_partition_negative_c1234_hpc.py")
+spec = importlib.util.spec_from_file_location("partition_mod", target_script)
 partition_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(partition_mod)
 
@@ -230,16 +230,17 @@ class TestNegativeC1234Partitions(unittest.TestCase):
         verifies that they satisfy all 9 strict integrity rules and exact counts.
         """
         splits_dir = os.path.join(REPO_ROOT, "data", "dataset_construction", "04_benchmark_splits", "arabidopsis")
-        neg_c1 = os.path.join(splits_dir, "ara_negative_c1_train_id0_50_cov0_80.tsv")
+        neg_dir = os.path.join(splits_dir, "negative_data") if os.path.isdir(os.path.join(splits_dir, "negative_data")) else splits_dir
+        neg_c1 = os.path.join(neg_dir, "ara_negative_c1_train_id0_50_cov0_80.tsv")
         if not os.path.isfile(neg_c1):
             self.skipTest("Negative partition files not yet generated on disk (run pipeline first).")
 
         pos_pairs, v_train, v_test, v_c1 = partition_mod.load_positive_splits(splits_dir, theta="0_50", cmin="0_80")
         neg_paths = {
             "C1": neg_c1,
-            "C2": os.path.join(splits_dir, "ara_negative_c2_test_id0_50_cov0_80.tsv"),
-            "C3": os.path.join(splits_dir, "ara_negative_c3_test_id0_50_cov0_80.tsv"),
-            "C4": os.path.join(splits_dir, "ara_negative_c4_test_id0_50_cov0_80.tsv"),
+            "C2": os.path.join(neg_dir, "ara_negative_c2_test_id0_50_cov0_80.tsv"),
+            "C3": os.path.join(neg_dir, "ara_negative_c3_test_id0_50_cov0_80.tsv"),
+            "C4": os.path.join(neg_dir, "ara_negative_c4_test_id0_50_cov0_80.tsv"),
         }
 
         audit_results, _ = partition_mod.verify_partition_integrity(pos_pairs, neg_paths, v_train, v_test, v_c1)

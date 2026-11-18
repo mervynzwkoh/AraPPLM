@@ -72,6 +72,8 @@ scripts/
 │   └── hpc/                                   # HPC batch scripts for model training & feature extraction
 │       ├── extract_ara_pplm_embeddings.py     # PPLM paired embedding extractor for positive pairs
 │       ├── run_extract_ara_embeddings_nscc.pbs # PBS job script for PPLM embedding extraction
+│       ├── run_extract_araplm_c1_shard_nscc.pbs # Sharded C1 feature extraction for curated AraPPLM
+│       ├── run_benchmark_araplm_nscc.pbs      # Zero-shot + author-aligned retraining benchmark on AraPPLM
 │       ├── run_train_deeparappi_nscc.pbs      # PBS job script for training DeepAraPPI models
 │       ├── run_train_esmarappi_nscc.pbs       # PBS job script for training ESMAraPPI models
 │       └── run_resume_deeparappi_nscc.pbs     # PBS job script to resume DeepAraPPI training

@@ -13,6 +13,10 @@ import unittest
 BASE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "data", "dataset_construction", "04_benchmark_splits", "arabidopsis")
 )
+if os.path.isdir(os.path.join(BASE_DIR, "positive_data")):
+    BASE_DIR = os.path.join(BASE_DIR, "positive_data")
+elif os.path.isdir(os.path.join(BASE_DIR, "positive")):
+    BASE_DIR = os.path.join(BASE_DIR, "positive")
 ORIG_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "data", "dataset_construction", "03_homology_clustering", "arabidopsis", "ara_positive_pairs_nr_id0_50_cov0_80.tsv")
 )

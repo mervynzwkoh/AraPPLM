@@ -1,0 +1,92 @@
+{
+  "metrics": {
+    "timestamp_utc": "2026-10-28T02:54:34Z",
+    "stage": "Stage 2.7: C1/C2/C3/C4 Negative Benchmark Partitioning",
+    "ratio_positive_to_negative": "1:10.0",
+    "theta_identity": "0_50",
+    "cmin_coverage": "0_80",
+    "seed": 42,
+    "execution_time_seconds": 49.81,
+    "total_scanned_candidate_pairs": 50308730,
+    "pool_candidates": {
+      "pool14_c1_c4": 3546254,
+      "pool2_c2": 427566,
+      "pool3_c3": 10965
+    },
+    "negative_pairs_retained": {
+      "C1": 194620,
+      "C2": 11450,
+      "C3": 10965,
+      "C4": 11450,
+      "total": 228485
+    }
+  },
+  "audit_results": [
+    {
+      "check": "1:10.0 Ratio for C1",
+      "target": "194,620 (19,462 x 10.0)",
+      "result": "194,620 (ratio = 1:10.00)",
+      "passed": true
+    },
+    {
+      "check": "1:10.0 Ratio for C2",
+      "target": "11,450 (1,145 x 10.0)",
+      "result": "11,450 (ratio = 1:10.00)",
+      "passed": true
+    },
+    {
+      "check": "1:10.0 Ratio for C3",
+      "target": "11,450 (Capped at theoretical max 10,965)",
+      "result": "10,965 (ratio = 1:9.58)",
+      "passed": true
+    },
+    {
+      "check": "1:10.0 Ratio for C4",
+      "target": "11,450 (1,145 x 10.0)",
+      "result": "11,450 (ratio = 1:10.00)",
+      "passed": true
+    },
+    {
+      "check": "Pairwise Edge Disjointness Across All 8 Sets",
+      "target": "0 shared pairs",
+      "result": "0 shared pairs",
+      "passed": true
+    },
+    {
+      "check": "Disjoint Vertex Bisection (V_train intersect V_test = empty)",
+      "target": "0 overlapping proteins",
+      "result": "0 overlapping proteins",
+      "passed": true
+    },
+    {
+      "check": "C1 Negatives Both Seen in V(C1)",
+      "target": "100% in V(C1)",
+      "result": "2,324/2,324 in V(C1)",
+      "passed": true
+    },
+    {
+      "check": "C4 Negatives Both Seen in V(C1)",
+      "target": "100% in V(C1)",
+      "result": "2,061/2,061 in V(C1)",
+      "passed": true
+    },
+    {
+      "check": "C3 Negatives Both Unseen in V_test",
+      "target": "100% in V_test",
+      "result": "235/235 in V_test",
+      "passed": true
+    },
+    {
+      "check": "Zero Homology Leakage (V(C3_neg) intersect V(C1_train) = empty)",
+      "target": "0 overlapping proteins",
+      "result": "0 overlapping proteins",
+      "passed": true
+    },
+    {
+      "check": "C2 Negatives Cut Boundary (One Seen, One Unseen)",
+      "target": "100.0%",
+      "result": "100.00% (11,450/11,450)",
+      "passed": true
+    }
+  ]
+}

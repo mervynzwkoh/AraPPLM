@@ -72,9 +72,26 @@ Thus, $P_j$ must belong to $\left( \bigcup_{X \in \mathcal{H}(A)} \text{Pairs}(X
 
 ---
 
-## 4. Parameter Sweep Grid
+## 4. Parameter Sweep Grid & Finalized Parameter Selection
 
-The pipeline evaluates 12 combinations across sequence identity ($\theta \in \{0.40, 0.70, 0.90\}$) and alignment coverage ($c_{\min} \in \{0.50, 0.70, 0.80, 0.90\}$):
+### 4.1 Final Selected Threshold: $\theta = 0.50, c_{\min} = 0.80$
+
+Following systematic sensitivity analysis across sequence identity ($\theta \in [0.40, 0.80]$) and reciprocal coverage ($c_{\min} \in [0.50, 0.90]$), **$\theta = 0.50$ (50% sequence identity)** and **$c_{\min} = 0.80$ (80% reciprocal alignment coverage)** was selected as the authoritative benchmark threshold:
+- **Input**: 30,376 high-confidence heteromeric positive pairs (8,970 proteins).
+- **Non-Redundant Representatives Retained**: **22,897 pairs** (**24.62% redundancy pruned**).
+- **Unique Proteins Represented**: **8,426 proteins**.
+- **Multi-Pair Homology Clusters**: 3,866 clusters resolved (largest cluster: 65 pairs).
+- **Singletons**: 19,031 pairs.
+
+This threshold strikes the optimal balance between pruning paralogous interaction duplicates while preserving structural and biological pathway diversity across Arabidopsis gene families.
+
+Detailed audit results are documented in:
+- [`summary_clustering_metrics.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/dataset_construction/03_homology_clustering/summary_clustering_metrics.md) (Identity sweep $\theta \in [0.40, 0.80]$ at $c_{\min} = 0.80$)
+- [`top20_cluster_density_report_0.5.md`](file:///c:/Users/User/OneDrive/Desktop/NUS/AIS/AIS5281/AraPPLM/docs/dataset_construction/03_homology_clustering/top20_cluster_density_report_0.5.md) (Top-20 cluster density analysis at $\theta = 0.50$)
+
+### 4.2 Comprehensive Parameter Grid Evaluated
+
+The pipeline evaluated multiple combinations across sequence identity and alignment coverage:
 
 | Sequence Identity ($\theta$) | Coverage ($c_{\min}$) | Benchmark Purpose |
 |:---:|:---:|---|
@@ -108,13 +125,13 @@ module load mmseqs2 || true
 module load python/3.10 || module load miniconda3 || true
 
 # 3. Run the pipeline (specifying number of threads)
-THREADS=16 bash scripts/dataset_construction/run_pair_clustering_pipeline.sh
+THREADS=16 bash scripts/dataset_construction/03_homology_clustering/run_pair_clustering_pipeline.sh
 ```
 
 ### Option B: Batch Submission via PBS Pro (e.g., NSCC ASPIRE 2A)
 ```bash
 # Submit the pre-configured PBS job script
-qsub scripts/dataset_construction/submit_pair_clustering_hpc.pbs
+qsub scripts/dataset_construction/03_homology_clustering/submit_pair_clustering_hpc.pbs
 
 # Monitor job status
 qstat -u $USER

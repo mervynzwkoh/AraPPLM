@@ -35,10 +35,10 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "dataset_construction"))
 
 import importlib.util
 
-spec = importlib.util.spec_from_file_location(
-    "filter_module",
-    os.path.join(REPO_ROOT, "scripts", "dataset_construction", "03_filter_negative_positive_interologs_hpc.py")
-)
+target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "02_negative_sampling", "03_filter_negative_positive_interologs_hpc.py")
+if not os.path.exists(target_script):
+    target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "03_filter_negative_positive_interologs_hpc.py")
+spec = importlib.util.spec_from_file_location("filter_module", target_script)
 filter_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(filter_mod)
 

@@ -116,11 +116,18 @@ class Dataset_PPI_Interact(Dataset):
         with open(target_list, "r") as f:
             for line in f:
                 line = line.strip()
-                if not line or line.startswith("#") or line.startswith("Protein"):
+                if (
+                    not line
+                    or line.startswith("#")
+                    or line.startswith("Protein")
+                    or line.startswith("participant_a_id")
+                ):
                     continue
                 parts = line.split()
+                if len(parts) >= 3 and parts[2] == "label":
+                    continue
                 if len(parts) >= 3 and "@" not in parts[0]:
-                    # Raw TSV line: Prot1 Prot2 label [score]
+                    # Raw TSV line: Prot1 Prot2 label [score/partition...]
                     sample = f"{parts[0]}@{parts[1]}"
                 else:
                     sample = parts[0]
@@ -252,10 +259,15 @@ def load_pair_list(dataset_path):
     with open(dataset_path, "r") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#") or line.startswith("Protein"):
+            if (
+                not line
+                or line.startswith("#")
+                or line.startswith("Protein")
+                or line.startswith("participant_a_id")
+            ):
                 continue
             parts = line.split("\t")
-            if len(parts) < 3:
+            if len(parts) < 3 or parts[2] == "label":
                 continue
             prot_a = parts[0]
             prot_b = parts[1]

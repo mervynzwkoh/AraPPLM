@@ -36,10 +36,10 @@ sys.path.insert(0, REPO_ROOT)
 
 import importlib.util
 
-spec = importlib.util.spec_from_file_location(
-    "cluster_mod",
-    os.path.join(REPO_ROOT, "scripts", "dataset_construction", "04_cluster_candidate_negatives_mmseqs_hpc.py")
-)
+target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "02_negative_sampling", "04_cluster_candidate_negatives_mmseqs_hpc.py")
+if not os.path.exists(target_script):
+    target_script = os.path.join(REPO_ROOT, "scripts", "dataset_construction", "04_cluster_candidate_negatives_mmseqs_hpc.py")
+spec = importlib.util.spec_from_file_location("cluster_mod", target_script)
 cluster_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cluster_mod)
 

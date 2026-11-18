@@ -82,6 +82,13 @@ DEEPARAPPI_BASELINES = {
     },
 }
 
+ARAPPLM_TASKS = {
+    "Task1": {"Description": "AraPPLM C1 Train Partition (theta=0.50, c_min=0.80)"},
+    "Task2": {"Description": "AraPPLM C2 Test Set: One Unseen Protein"},
+    "Task3": {"Description": "AraPPLM C3 Test Set: Both Unseen Proteins (Strict Zero-Shot)"},
+    "Task4_C4": {"Description": "AraPPLM C4 Test Set: Both Seen Proteins, Novel Test Edge"},
+}
+
 # Reference benchmark baselines from ESMAraPPI (Zhou et al., 2023)
 ESMARAPPI_BASELINES = {
     "ESM_C2": {
@@ -204,19 +211,20 @@ def print_task_evaluation(task_name, metrics, baseline_dict=None):
 
     if baseline_dict and task_name in baseline_dict:
         b = baseline_dict[task_name]
-        print("-" * 70)
-        benchmark_suite = "ESMARAPPI" if "ESM" in task_name else "DEEPARAPPI"
-        print(f"COMPARISON WITH {benchmark_suite} BENCHMARKS (AUPRC):")
-        print(f"  PPLM:                       {metrics['AUPRC']:.4f}")
-        for model_k, val in b.items():
-            if model_k != "Description":
+        model_entries = [(k, v) for k, v in b.items() if k != "Description"]
+        if model_entries:
+            print("-" * 70)
+            benchmark_suite = "ESMARAPPI" if "ESM" in task_name else "DEEPARAPPI"
+            print(f"COMPARISON WITH {benchmark_suite} BENCHMARKS (AUPRC):")
+            print(f"  PPLM:                       {metrics['AUPRC']:.4f}")
+            for model_k, val in model_entries:
                 print(f"  {model_k:<27} {val:.4f}")
 
-        primary_comp = "ESMAraPPI" if "ESMAraPPI" in b else "DeepAraPPI"
-        if primary_comp in b:
-            delta = metrics["AUPRC"] - b[primary_comp]
-            sign = "+" if delta >= 0 else ""
-            print(f"  PPLM vs {primary_comp}:         {sign}{delta:.4f}")
+            primary_comp = "ESMAraPPI" if "ESMAraPPI" in b else "DeepAraPPI"
+            if primary_comp in b:
+                delta = metrics["AUPRC"] - b[primary_comp]
+                sign = "+" if delta >= 0 else ""
+                print(f"  PPLM vs {primary_comp}:         {sign}{delta:.4f}")
     print("=" * 70 + "\n")
 
 
@@ -232,7 +240,9 @@ def load_predictions_csv(csv_path):
     )
 
 
-def evaluate_file(csv_path, task_name="Task", output_dir=None, summary_filename=None):
+def evaluate_file(
+    csv_path, task_name="Task", output_dir=None, summary_filename=None, suite=None
+):
     """Load predictions CSV and compute metrics."""
     if not os.path.exists(csv_path):
         print(f"[!] Error: File not found: {csv_path}")
@@ -240,8 +250,11 @@ def evaluate_file(csv_path, task_name="Task", output_dir=None, summary_filename=
 
     y_true, y_score = load_predictions_csv(csv_path)
     metrics = compute_metrics(y_true, y_score)
-    all_baselines = {**DEEPARAPPI_BASELINES, **ESMARAPPI_BASELINES}
-    print_task_evaluation(task_name, metrics, all_baselines)
+    if suite == "AraPPLM":
+        baselines = ARAPPLM_TASKS
+    else:
+        baselines = {**DEEPARAPPI_BASELINES, **ESMARAPPI_BASELINES, **ARAPPLM_TASKS}
+    print_task_evaluation(task_name, metrics, baselines)
 
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
@@ -263,6 +276,12 @@ def run_pooling_ablation_summary(ablation_dir, suite, output_dir):
             ("c2", "Task2", "deepara"),
             ("c3", "Task3", "deepara"),
             ("rice", "Task4_Rice", "deepara"),
+        ]
+    elif suite == "AraPPLM":
+        task_specs = [
+            ("c2", "Task2", "araplm"),
+            ("c3", "Task3", "araplm"),
+            ("c4", "Task4_C4", "araplm"),
         ]
     else:
         task_specs = [
@@ -300,20 +319,30 @@ def run_pooling_ablation_summary(ablation_dir, suite, output_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evaluate PPLM on Plant PPI Benchmarks (DeepAraPPI / ESMAraPPI)"
+        description="Evaluate PPLM on Plant PPI Benchmarks (DeepAraPPI / ESMAraPPI / AraPPLM)"
     )
     parser.add_argument("--input", help="Single prediction CSV file")
     parser.add_argument(
         "--task",
         default="Task",
-        choices=["Task1", "Task2", "Task3", "Task4_Rice", "ESM_C2", "ESM_C3", "Custom"],
+        choices=[
+            "Task1",
+            "Task2",
+            "Task3",
+            "Task4_Rice",
+            "Task4_C4",
+            "ESM_C2",
+            "ESM_C3",
+            "Custom",
+        ],
         help="Task name for benchmark lookup",
     )
 
-    # DeepAraPPI multi-file evaluation
-    parser.add_argument("--c1", help="Path to DeepAraPPI C1 test prediction CSV")
-    parser.add_argument("--c2", help="Path to DeepAraPPI C2 test prediction CSV")
-    parser.add_argument("--c3", help="Path to DeepAraPPI C3 test prediction CSV")
+    # DeepAraPPI / AraPPLM multi-file evaluation
+    parser.add_argument("--c1", help="Path to C1 prediction CSV")
+    parser.add_argument("--c2", help="Path to C2 test prediction CSV")
+    parser.add_argument("--c3", help="Path to C3 test prediction CSV")
+    parser.add_argument("--c4", help="Path to AraPPLM C4 test prediction CSV")
     parser.add_argument("--rice", help="Path to DeepAraPPI Rice test prediction CSV")
 
     # ESMAraPPI multi-file evaluation
@@ -329,8 +358,8 @@ def main():
     parser.add_argument(
         "--suite",
         default="DeepAraPPI",
-        choices=["DeepAraPPI", "ESMAraPPI"],
-        help="Benchmark suite for --pooling_ablation_dir",
+        choices=["DeepAraPPI", "ESMAraPPI", "AraPPLM"],
+        help="Benchmark suite for --pooling_ablation_dir and baseline selection",
     )
 
     parser.add_argument(
@@ -341,39 +370,60 @@ def main():
     results_table = []
 
     if args.input:
-        m = evaluate_file(args.input, task_name=args.task, output_dir=args.output_dir)
+        m = evaluate_file(
+            args.input, task_name=args.task, output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": args.task, **m})
 
-    # DeepAraPPI evaluations
+    # DeepAraPPI / AraPPLM evaluations
     if args.c1:
-        m = evaluate_file(args.c1, task_name="Task1", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.c1, task_name="Task1", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "Task1 (C1)", **m})
 
     if args.c2:
-        m = evaluate_file(args.c2, task_name="Task2", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.c2, task_name="Task2", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "Task2 (C2)", **m})
 
     if args.c3:
-        m = evaluate_file(args.c3, task_name="Task3", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.c3, task_name="Task3", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "Task3 (C3)", **m})
 
+    if args.c4:
+        m = evaluate_file(
+            args.c4, task_name="Task4_C4", output_dir=args.output_dir, suite=args.suite
+        )
+        if m:
+            results_table.append({"Task": "Task4 (C4)", **m})
+
     if args.rice:
-        m = evaluate_file(args.rice, task_name="Task4_Rice", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.rice, task_name="Task4_Rice", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "Task4 (Rice)", **m})
 
     # ESMAraPPI evaluations
     if args.esm_c2:
-        m = evaluate_file(args.esm_c2, task_name="ESM_C2", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.esm_c2, task_name="ESM_C2", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "ESMAraPPI C2 (One Unseen)", **m})
 
     if args.esm_c3:
-        m = evaluate_file(args.esm_c3, task_name="ESM_C3", output_dir=args.output_dir)
+        m = evaluate_file(
+            args.esm_c3, task_name="ESM_C3", output_dir=args.output_dir, suite=args.suite
+        )
         if m:
             results_table.append({"Task": "ESMAraPPI C3 (Both Unseen)", **m})
 

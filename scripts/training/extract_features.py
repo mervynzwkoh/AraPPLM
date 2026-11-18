@@ -160,6 +160,42 @@ def extract_pair_features(model, batch_converter, seqA, seqB, device, max_pair_l
     return features
 
 
+def load_input_pairs(input_path, num_shards=1, shard_id=0):
+    """Read input TSV pairs (skipping comment/header rows) and apply optional shard slicing."""
+    if num_shards < 1:
+        raise ValueError(f"num_shards must be >= 1, got {num_shards}")
+    if not (0 <= shard_id < num_shards):
+        raise ValueError(f"shard_id must be in [0, {num_shards - 1}], got {shard_id}")
+
+    pairs = []
+    with open(input_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if (
+                not line
+                or line.startswith("#")
+                or line.startswith("Protein")
+                or line.startswith("participant_a_id")
+            ):
+                continue
+            parts = line.split("\t")
+            if len(parts) < 3 or parts[2] == "label":
+                continue
+            pairs.append((parts[0], parts[1], int(parts[2])))
+
+    total_pairs = len(pairs)
+    if num_shards > 1:
+        chunk_size = (total_pairs + num_shards - 1) // num_shards
+        start_idx = shard_id * chunk_size
+        end_idx = min(total_pairs, start_idx + chunk_size)
+        pairs = pairs[start_idx:end_idx]
+        print(
+            f"Shard {shard_id}/{num_shards}: processing pairs [{start_idx}:{end_idx}] "
+            f"({len(pairs)}/{total_pairs} pairs)"
+        )
+    return pairs
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Extract PPLM backbone features for plant PPI training"
@@ -186,7 +222,24 @@ def main():
         default=False,
         help="Skip pairs that already have .pkl files (for resumption)",
     )
+    parser.add_argument(
+        "--num_shards",
+        type=int,
+        default=1,
+        help="Total number of parallel shards to split pairs across (default: 1)",
+    )
+    parser.add_argument(
+        "--shard_id",
+        type=int,
+        default=0,
+        help="0-indexed shard ID to process (default: 0)",
+    )
     args = parser.parse_args()
+
+    if args.num_shards < 1:
+        parser.error("--num_shards must be >= 1")
+    if not (0 <= args.shard_id < args.num_shards):
+        parser.error(f"--shard_id must be between 0 and {args.num_shards - 1}")
 
     # Setup device
     device = torch.device(f"cuda:{args.gpu_id}" if torch.cuda.is_available() else "cpu")
@@ -203,17 +256,10 @@ def main():
 
     # Read input pairs
     print(f"Reading input: {args.input}")
-    pairs = []
-    with open(args.input, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or line.startswith("Protein"):
-                continue
-            parts = line.split("\t")
-            if len(parts) < 3:
-                continue
-            pairs.append((parts[0], parts[1], int(parts[2])))
-    print(f"Total pairs: {len(pairs)}")
+    pairs = load_input_pairs(
+        args.input, num_shards=args.num_shards, shard_id=args.shard_id
+    )
+    print(f"Total pairs to process: {len(pairs)}")
 
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)

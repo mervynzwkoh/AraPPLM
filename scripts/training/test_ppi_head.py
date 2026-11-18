@@ -289,10 +289,15 @@ def run_onthefly_testing(args, model_lists, device):
     with open(args.input, "r") as f:
         for line in f:
             line = line.strip()
-            if not line or line.startswith("#") or line.startswith("Protein"):
+            if (
+                not line
+                or line.startswith("#")
+                or line.startswith("Protein")
+                or line.startswith("participant_a_id")
+            ):
                 continue
             parts = line.split("\t")
-            if len(parts) < 3:
+            if len(parts) < 3 or parts[2] == "label":
                 continue
             rows.append((parts[0], parts[1], int(parts[2])))
             if args.debug and len(rows) >= args.n_debug_target:
