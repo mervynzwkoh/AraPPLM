@@ -1,0 +1,90 @@
+#!/bin/bash
+# ==============================================================================
+# PBS Job Script: Evaluate Pretrained PPLM-PPI Head on DeepAraPPI C1
+# and Merge with Existing C2, C3, and Rice Scores
+# NSCC ASPIRE 2A (NVIDIA A100 40GB)
+#
+# Usage:
+#   qsub scripts/training/hpc/run_eval_deeparappi_c1_nscc.pbs
+# ==============================================================================
+#PBS -N pplm_eval_deepara_c1
+#PBS -P personal-e0969134
+#PBS -q normal
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64GB
+#PBS -l walltime=01:00:00
+#PBS -j oe
+#PBS -o pplm_eval_deepara_c1.log
+
+if [ -d "$PBS_O_WORKDIR/scripts" ]; then
+    cd "$PBS_O_WORKDIR"
+elif [ -d "$HOME/AraPPLM/scripts" ]; then
+    cd "$HOME/AraPPLM"
+elif [ -d "$HOME/AIS5281-Plant-PPLM/scripts" ]; then
+    cd "$HOME/AIS5281-Plant-PPLM"
+fi
+
+echo "=== DeepAraPPI C1 Pretrained Evaluation started on $(hostname) at $(date) ==="
+echo "Working directory: $(pwd)"
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+nvidia-smi
+
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+elif [ -f "$HOME/miniforge3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniforge3/etc/profile.d/conda.sh"
+fi
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+conda activate PPLM_NSCC_A100
+
+echo "Python binary: $(which python)"
+python -c "import torch; print('CUDA available:', torch.cuda.is_available(), '| GPU:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'None')"
+
+# ==============================================================================
+# Configuration
+# ==============================================================================
+if [ -d "data/legacy_benchmarks/DeepAraPPI" ]; then
+    DATA_DIR="data/legacy_benchmarks/DeepAraPPI"
+else
+    DATA_DIR="data/DeepAraPPI"
+fi
+
+C1_DATASET="$DATA_DIR/c1_ppi_sample_DeepAraPPI.txt"
+FEAT_DIR_C1="features/DeepAraPPI_C1"
+MODEL_DIR="models/DeepAraPPI"
+RESULT_DIR="results/DeepAraPPI/pretrained"
+
+MEAN_LIST="$MODEL_DIR/PPLM-PPI.inter_intra_attn_embed.mean.round_1.top5_list"
+MAX_LIST="$MODEL_DIR/PPLM-PPI.inter_intra_attn_embed.max.round_1.top5_list"
+
+mkdir -p "$RESULT_DIR"
+
+# ==============================================================================
+# Step 1: Batched Inference on DeepAraPPI C1 (Top-5 Mean + Max Ensemble)
+# ==============================================================================
+echo -e "\n>>> [Step 1] Running batched inference on DeepAraPPI C1 <<<"
+python -u scripts/training/test_ppi_head.py \
+    --input "$C1_DATASET" \
+    --feat_dir "$FEAT_DIR_C1" \
+    --mean_path "$MEAN_LIST" \
+    --max_path "$MAX_LIST" \
+    --output "$RESULT_DIR/deepara_c1_plant_scores.csv" \
+    --out_path_prefix "$RESULT_DIR/deepara_c1_combine_mean_max" \
+    --test_name "c1" \
+    --order_mode both \
+    --batch_size 512 \
+    --gpu_id 0
+
+# ==============================================================================
+# Step 2: Update benchmark_summary.csv with C1 + Existing C2, C3, and Rice Scores
+# ==============================================================================
+echo -e "\n>>> [Step 2] Updating benchmark_summary.csv with C1, C2, C3, and Rice <<<"
+python -u scripts/benchmarking/evaluate_pplm.py \
+    --c1 "$RESULT_DIR/deepara_c1_plant_scores.csv" \
+    --c2 "$RESULT_DIR/deepara_c2_plant_scores.csv" \
+    --c3 "$RESULT_DIR/deepara_c3_plant_scores.csv" \
+    --rice "$RESULT_DIR/deepara_rice_plant_scores.csv" \
+    --suite DeepAraPPI \
+    --output_dir "$RESULT_DIR"
+
+echo "=== DeepAraPPI C1 Pretrained Evaluation Complete at $(date) ==="

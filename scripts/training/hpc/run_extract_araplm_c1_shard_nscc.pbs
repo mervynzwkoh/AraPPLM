@@ -63,4 +63,4 @@ python -u scripts/training/extract_features.py \
     --resume
 
 echo "=== Shard ${SHARD_ID}/${NUM_SHARDS} Complete at $(date) ==="
-echo "Total .pkl files in $FEAT_DIR_C1: $(find -1 $FEAT_DIR_C1/*.pkl 2>/dev/null | wc -l)"
+echo "Total .pkl files in $FEAT_DIR_C1: $(find "$FEAT_DIR_C1" -maxdepth 1 -name "*.pkl" 2>/dev/null | wc -l)"

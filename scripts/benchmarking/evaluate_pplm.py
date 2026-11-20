@@ -279,6 +279,7 @@ def run_pooling_ablation_summary(ablation_dir, suite, output_dir):
         ]
     elif suite == "AraPPLM":
         task_specs = [
+            ("c1", "Task1", "araplm"),
             ("c2", "Task2", "araplm"),
             ("c3", "Task3", "araplm"),
             ("c4", "Task4_C4", "araplm"),

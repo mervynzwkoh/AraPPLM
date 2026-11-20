@@ -92,9 +92,14 @@ python -u scripts/training/extract_features.py \
     --input "$C1_DATASET" --output_dir "$FEAT_DIR_C1" --seq_db "$SEQ_DB" --gpu_id 0 --resume
 
 # ==============================================================================
-# Phase B: PPLM PPI Zero-Shot Benchmark (C2, C3, C4)
+# Phase B: PPLM PPI Zero-Shot Benchmark (C1, C2, C3, C4)
 # ==============================================================================
-echo -e "\n>>> [Phase B] Running Zero-Shot PPLM-PPI Evaluation (C2, C3, C4) <<<"
+echo -e "\n>>> [Phase B] Running Zero-Shot PPLM-PPI Evaluation (C1, C2, C3, C4) <<<"
+python -u scripts/benchmarking/batch_predict.py \
+    --input "$C1_DATASET" --feat_dir "$FEAT_DIR_C1" \
+    --modes mean max --batch_size 512 --gpu_id 0 \
+    --output "$ZERO_SHOT_DIR/araplm_c1_scores.csv"
+
 python -u scripts/benchmarking/batch_predict.py \
     --input "$C2_DATASET" --feat_dir "$FEAT_DIR_C2" \
     --modes mean max --batch_size 512 --gpu_id 0 \
@@ -111,6 +116,7 @@ python -u scripts/benchmarking/batch_predict.py \
     --output "$ZERO_SHOT_DIR/araplm_c4_scores.csv"
 
 python -u scripts/benchmarking/evaluate_pplm.py \
+    --c1 "$ZERO_SHOT_DIR/araplm_c1_scores.csv" \
     --c2 "$ZERO_SHOT_DIR/araplm_c2_scores.csv" \
     --c3 "$ZERO_SHOT_DIR/araplm_c3_scores.csv" \
     --c4 "$ZERO_SHOT_DIR/araplm_c4_scores.csv" \
@@ -204,6 +210,7 @@ run_test_suite() {
         --test_name "$split_tag" --order_mode both --batch_size 512 --gpu_id 0
 }
 
+run_test_suite "c1" "$C1_DATASET" "$FEAT_DIR_C1"
 run_test_suite "c2" "$C2_DATASET" "$FEAT_DIR_C2"
 run_test_suite "c3" "$C3_DATASET" "$FEAT_DIR_C3"
 run_test_suite "c4" "$C4_DATASET" "$FEAT_DIR_C4"
@@ -213,6 +220,7 @@ run_test_suite "c4" "$C4_DATASET" "$FEAT_DIR_C4"
 # ==============================================================================
 echo -e "\n>>> [Phase C - Stage 5] Running evaluation metrics and pooling ablation summary <<<"
 python -u scripts/benchmarking/evaluate_pplm.py \
+    --c1 "$PRETRAINED_DIR/araplm_c1_combine_mean_max_scores.csv" \
     --c2 "$PRETRAINED_DIR/araplm_c2_combine_mean_max_scores.csv" \
     --c3 "$PRETRAINED_DIR/araplm_c3_combine_mean_max_scores.csv" \
     --c4 "$PRETRAINED_DIR/araplm_c4_combine_mean_max_scores.csv" \
