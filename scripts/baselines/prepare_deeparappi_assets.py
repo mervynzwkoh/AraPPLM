@@ -165,15 +165,14 @@ def collect_proteins_and_loci(tsv_paths):
                 p_a, p_b = parts[0], parts[1]
                 lbl = int(parts[2])
                 pairs.append((p_a, p_b, lbl))
+                prot_to_locus.setdefault(p_a, None)
+                prot_to_locus.setdefault(p_b, None)
                 if len(parts) >= 6:
                     loc_a, loc_b = parts[4], parts[5]
                     if loc_a and loc_a != "None":
                         prot_to_locus[p_a] = loc_a
                     if loc_b and loc_b != "None":
                         prot_to_locus[p_b] = loc_b
-                else:
-                    prot_to_locus.setdefault(p_a, None)
-                    prot_to_locus.setdefault(p_b, None)
         split_pairs[split_name] = pairs
     return prot_to_locus, split_pairs
 

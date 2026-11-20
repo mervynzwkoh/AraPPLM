@@ -4,8 +4,11 @@
 # on the Curated AraPPLM Dataset (C1, C2, C3, C4)
 # NSCC ASPIRE 2A (NVIDIA A100 40GB)
 #
-# Prerequisite (run once on login node):
-#   bash scripts/baselines/hpc/setup_and_submit_baselines_hpc.sh
+# Direct PBS Submission:
+#   qsub scripts/baselines/hpc/run_baselines_araplm_nscc.pbs
+#
+# (Or run `bash scripts/baselines/hpc/setup_and_submit_baselines_hpc.sh` on the
+#  login node first if compute nodes lack internet access for git clone / ESM-1b download.)
 # ==============================================================================
 #PBS -N baselines_araplm
 #PBS -P personal-e0969134
@@ -56,7 +59,12 @@ ESM1B_PKL="features/baselines/esm1b_t33_650M_UR50S_ara.pkl"
 DEEPARAPPI_ASSETS="features/baselines/deeparappi_assets.pkl"
 DEEPARAPPI_REPO="external_repos/DeepAraPPI"
 
-mkdir -p features/baselines models/AraPPLM/baselines results/AraPPLM/baselines
+mkdir -p external_repos features/baselines models/AraPPLM/baselines results/AraPPLM/baselines
+
+if [ ! -d "$DEEPARAPPI_REPO/.git" ]; then
+    echo "Cloning https://github.com/zjy1125/DeepAraPPI.git into $DEEPARAPPI_REPO ..."
+    git clone https://github.com/zjy1125/DeepAraPPI.git "$DEEPARAPPI_REPO" || true
+fi
 
 # ==============================================================================
 # Phase 1A: Extract Single-Chain ESM-1b Embeddings (8,426 Unique Proteins)
@@ -84,26 +92,34 @@ python -u scripts/baselines/prepare_deeparappi_assets.py \
 # ==============================================================================
 # Phase 2A: Train & Evaluate ESMAraPPI (Exact MLP.py on C1, C2, C3, C4)
 # ==============================================================================
-echo -e "\n>>> [Phase 2A] Training & Evaluating ESMAraPPI (Zhou et al., 2023) <<<"
-python -u scripts/baselines/train_esmarappi.py \
-    --c1 "$C1_DATASET" --c2 "$C2_DATASET" --c3 "$C3_DATASET" --c4 "$C4_DATASET" \
-    --embeddings "$ESM1B_PKL" \
-    --output_dir "results/AraPPLM/baselines/ESMAraPPI" \
-    --model_out "models/AraPPLM/baselines/esmarappi_mlp.pt" \
-    --epochs 40 --batch_size 128 --lr 0.001 --seed 0 --gpu_id 0
+if [ "${SKIP_COMPLETED:-0}" = "1" ] && [ -f "results/AraPPLM/baselines/ESMAraPPI/benchmark_summary.csv" ]; then
+    echo -e "\n>>> [Phase 2A] Skipping ESMAraPPI (benchmark_summary.csv already exists) <<<"
+else
+    echo -e "\n>>> [Phase 2A] Training & Evaluating ESMAraPPI (Zhou et al., 2023) <<<"
+    python -u scripts/baselines/train_esmarappi.py \
+        --c1 "$C1_DATASET" --c2 "$C2_DATASET" --c3 "$C3_DATASET" --c4 "$C4_DATASET" \
+        --embeddings "$ESM1B_PKL" \
+        --output_dir "results/AraPPLM/baselines/ESMAraPPI" \
+        --model_out "models/AraPPLM/baselines/esmarappi_mlp.pt" \
+        --epochs 40 --batch_size 128 --lr 0.001 --seed 0 --gpu_id 0
+fi
 
 # ==============================================================================
 # Phase 2B: Train & Evaluate ARACoFusion (Sarkar & Sarkar, 2026 on C1, C2, C3, C4)
 # ==============================================================================
-echo -e "\n>>> [Phase 2B] Training & Evaluating ARACoFusion (Sarkar & Sarkar, 2026) <<<"
-python -u scripts/baselines/train_aracofusion.py \
-    --c1 "$C1_DATASET" --c2 "$C2_DATASET" --c3 "$C3_DATASET" --c4 "$C4_DATASET" \
-    --embeddings "$ESM1B_PKL" \
-    --output_dir "results/AraPPLM/baselines/ARACoFusion" \
-    --model_out "models/AraPPLM/baselines/aracofusion_best.pt" \
-    --num_heads 8 --lr 0.000681383 --gamma 3.892573 --dropout 0.118479 \
-    --smoothing 0.0514500 --uncertainty_weight 0.579057 --temperature 0.58 \
-    --epochs 40 --batch_size 128 --gpu_id 0
+if [ "${SKIP_COMPLETED:-0}" = "1" ] && [ -f "results/AraPPLM/baselines/ARACoFusion/benchmark_summary.csv" ]; then
+    echo -e "\n>>> [Phase 2B] Skipping ARACoFusion (benchmark_summary.csv already exists) <<<"
+else
+    echo -e "\n>>> [Phase 2B] Training & Evaluating ARACoFusion (Sarkar & Sarkar, 2026) <<<"
+    python -u scripts/baselines/train_aracofusion.py \
+        --c1 "$C1_DATASET" --c2 "$C2_DATASET" --c3 "$C3_DATASET" --c4 "$C4_DATASET" \
+        --embeddings "$ESM1B_PKL" \
+        --output_dir "results/AraPPLM/baselines/ARACoFusion" \
+        --model_out "models/AraPPLM/baselines/aracofusion_best.pt" \
+        --num_heads 8 --lr 0.000681383 --gamma 3.892573 --dropout 0.118479 \
+        --smoothing 0.0514500 --uncertainty_weight 0.579057 --temperature 0.58 \
+        --epochs 40 --batch_size 128 --gpu_id 0
+fi
 
 # ==============================================================================
 # Phase 2C: Train & Evaluate DeepAraPPI (RCNN, Domain2vec, GO2vec, Integrated LR)
@@ -115,5 +131,44 @@ python -u scripts/baselines/train_deeparappi.py \
     --output_root "results/AraPPLM/baselines" \
     --model_dir "models/AraPPLM/baselines/DeepAraPPI" \
     --epochs 50 --mlp_batch_size 32 --rcnn_batch_size 32 --seed 63 --gpu_id 0
+
+# ==============================================================================
+# Phase 3: Consolidate All Baseline & PPLM Results into a Single Summary Table
+# ==============================================================================
+echo -e "\n>>> [Phase 3] Consolidating All AraPPLM Benchmark Summaries <<<"
+python - << 'EOF'
+import os
+import pandas as pd
+
+candidates = [
+    ("ESMAraPPI", "results/AraPPLM/baselines/ESMAraPPI/benchmark_summary.csv"),
+    ("ARACoFusion", "results/AraPPLM/baselines/ARACoFusion/benchmark_summary.csv"),
+    ("DeepAraPPI_RCNN", "results/AraPPLM/baselines/DeepAraPPI_RCNN/benchmark_summary.csv"),
+    ("DeepAraPPI_Domain2vec", "results/AraPPLM/baselines/DeepAraPPI_Domain2vec/benchmark_summary.csv"),
+    ("DeepAraPPI_GO2vec", "results/AraPPLM/baselines/DeepAraPPI_GO2vec/benchmark_summary.csv"),
+    ("DeepAraPPI_Integrated", "results/AraPPLM/baselines/DeepAraPPI_Integrated/benchmark_summary.csv"),
+    ("PPLM_ZeroShot", "results/AraPPLM/zero-shot/benchmark_summary.csv"),
+    ("PPLM_Trained", "results/AraPPLM/pretrained/benchmark_summary.csv"),
+]
+
+frames = []
+for model_name, csv_path in candidates:
+    if os.path.exists(csv_path):
+        df = pd.read_csv(csv_path)
+        df.insert(0, "Model", model_name)
+        frames.append(df)
+
+if frames:
+    combined = pd.concat(frames, ignore_index=True)
+    out_csv = "results/AraPPLM/baselines/all_models_benchmark_summary.csv"
+    combined.to_csv(out_csv, index=False)
+    cols = [c for c in ["Model", "Task", "AUPRC", "AUROC", "F1_Score", "MCC", "Precision", "Sensitivity_Recall", "Specificity", "Accuracy"] if c in combined.columns]
+    print("\n" + "=" * 95)
+    print("CONSOLIDATED ARAPPLM BENCHMARK COMPARISON (C1, C2, C3, C4)")
+    print("=" * 95)
+    print(combined[cols].to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+    print("=" * 95)
+    print(f"Saved consolidated summary to: {out_csv}")
+EOF
 
 echo "=== AraPPLM Legacy Baselines Benchmark Complete at $(date) ==="
